@@ -872,6 +872,7 @@ mapAliases ({
   tixati = throw "'tixati' has been removed from nixpkgs as it is unfree and unmaintained"; # Added 2023-03-17
   tkcvs = tkrev; # Added 2022-03-07
   tokodon = plasma5Packages.tokodon;
+  tokyo-night-gtk = tokyoNightGTKPackages.full;
   tor-browser-bundle-bin = tor-browser; # Added 2023-09-23
   transfig = fig2dev; # Added 2022-02-15
   trustedGrub = throw "trustedGrub has been removed, because it is not maintained upstream anymore"; # Added 2023-05-10

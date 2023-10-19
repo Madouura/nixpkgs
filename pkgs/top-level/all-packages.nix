@@ -35880,7 +35880,7 @@ with pkgs;
 
   tofi = callPackage ../applications/misc/tofi { };
 
-  tokyo-night-gtk = recurseIntoAttrs (callPackage ../data/themes/tokyo-night-gtk { });
+  tokyoNightGTKPackages = recurseIntoAttrs (callPackage ../data/themes/tokyoNightGTKPackages { });
 
   topydo = callPackage ../applications/misc/topydo { };
 

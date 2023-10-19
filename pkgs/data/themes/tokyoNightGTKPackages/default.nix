@@ -1,8 +1,6 @@
 { lib
 , stdenvNoCC
 , fetchFromGitHub
-, makeScopeWithSplicing'
-, generateSplicesForMkScope
 , unstableGitUpdater
 , gtk-engine-murrine
 , gnome-themes-extra
@@ -10,25 +8,24 @@
 
 # Why do we do this? This package has a LOT of files! The user may not need
 # some of these themes and icons and the ~100k extra files in them.
-# We also need to use `makeScopeWithSplicing'` to get around cross problems.
-# https://github.com/NixOS/nixpkgs/issues/211340
+# Why not just use passthru for these? See: https://github.com/NixOS/nixpkgs/issues/211340
 let
   icons = {
-    dark = base.override { tkIcon = "Dark"; tkTheme = ""; };
-    dark-cyan = base.override { tkIcon = "Dark-Cyan"; tkTheme = ""; };
-    light = base.override { tkIcon = "Light"; tkTheme = ""; };
-    moon = base.override { tkIcon = "Moon"; tkTheme = ""; };
+    dark = base { tkIcon = "Dark"; tkTheme = ""; };
+    dark-cyan = base { tkIcon = "Dark-Cyan"; tkTheme = ""; };
+    light = base { tkIcon = "Light"; tkTheme = ""; };
+    moon = base { tkIcon = "Moon"; tkTheme = ""; };
   };
 
   themes = {
-    dark-b = base.override { tkIcon = ""; tkTheme = "Dark-B"; };
-    dark-bl = base.override { tkIcon = ""; tkTheme = "Dark-BL"; };
-    dark-b-lb = base.override { tkIcon = ""; tkTheme = "Dark-B-LB"; };
-    dark-bl-lb = base.override { tkIcon = ""; tkTheme = "Dark-BL-LB"; };
-    storm-b = base.override { tkIcon = ""; tkTheme = "Storm-B"; };
-    storm-bl = base.override { tkIcon = ""; tkTheme = "Storm-BL"; };
-    storm-b-lb = base.override { tkIcon = ""; tkTheme = "Storm-B-LB"; };
-    storm-bl-lb = base.override { tkIcon = ""; tkTheme = "Storm-BL-LB"; };
+    dark-b = base { tkIcon = ""; tkTheme = "Dark-B"; };
+    dark-bl = base { tkIcon = ""; tkTheme = "Dark-BL"; };
+    dark-b-lb = base { tkIcon = ""; tkTheme = "Dark-B-LB"; };
+    dark-bl-lb = base { tkIcon = ""; tkTheme = "Dark-BL-LB"; };
+    storm-b = base { tkIcon = ""; tkTheme = "Storm-B"; };
+    storm-bl = base { tkIcon = ""; tkTheme = "Storm-BL"; };
+    storm-b-lb = base { tkIcon = ""; tkTheme = "Storm-B-LB"; };
+    storm-bl-lb = base { tkIcon = ""; tkTheme = "Storm-BL-LB"; };
   };
 
   base = {
@@ -93,20 +90,17 @@ let
       runHook postInstall
     '';
 
-    passthru = {
-      inherit icons themes;
-      updateScript = unstableGitUpdater { };
-    };
+    passthru.updateScript = unstableGitUpdater { };
 
     meta = with lib; {
       description = "A GTK theme based on the Tokyo Night colour palette";
       homepage = "https://www.pling.com/p/1681315";
       license = licenses.gpl3Only;
       platforms = platforms.unix;
-      maintainers = with maintainers; [ garaiza-93 ];
+      maintainers = with maintainers; [ garaiza-93 Madouura ];
     };
   });
-in makeScopeWithSplicing' {
-  otherSplices = generateSplicesForMkScope "tokyo-night-gtk";
-  f = tokyoNightFun;
+in {
+  inherit icons themes;
+  full = base { };
 }
