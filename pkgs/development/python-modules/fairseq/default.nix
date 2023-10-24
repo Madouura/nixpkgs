@@ -1,6 +1,7 @@
 { lib
 , buildPythonPackage
 , pythonOlder
+, pythonAtLeast
 , fetchFromGitHub
 
 # Native build inputs
@@ -41,7 +42,8 @@ buildPythonPackage rec {
     hash = "sha256-XX/grU5ljQCwx33miGoFc/7Uj9fZDtmhm4Fz7L4U+Bc=";
   };
 
-  disabled = pythonOlder "3.7";
+  # https://github.com/facebookresearch/fairseq/pull/5062
+  disabled = (pythonOlder "3.7" || pythonAtLeast "3.11");
 
   nativeBuildInputs = [
     cython
