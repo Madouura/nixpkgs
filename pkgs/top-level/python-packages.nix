@@ -4091,6 +4091,8 @@ self: super: with self; {
 
   flit-scm = callPackage ../development/python-modules/flit-scm { };
 
+  floret = callPackage ../development/python-modules/floret { };
+
   flow-record = callPackage ../development/python-modules/flow-record { };
 
   flower = callPackage ../development/python-modules/flower { };
