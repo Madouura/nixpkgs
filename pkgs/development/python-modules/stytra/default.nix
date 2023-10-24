@@ -79,6 +79,9 @@ buildPythonPackage rec {
     pyserial
   ];
 
+  # module 'pyqtgraph' has no attribute 'GraphicsWindow'
+  doCheck = false;
+
   meta = with lib; {
     description = "A modular package to control stimulation and track behaviour";
     homepage = "https://github.com/portugueslab/stytra";
