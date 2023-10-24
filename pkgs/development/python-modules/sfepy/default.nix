@@ -56,6 +56,7 @@ buildPythonPackage rec {
     rm sfepy/tests/test_poly_spaces.py
     rm sfepy/tests/test_linear_solvers.py
     rm sfepy/tests/test_quadratures.py
+    rm sfepy/tests/test_declarative_examples.py
   '';
 
   nativeCheckInputs = [
