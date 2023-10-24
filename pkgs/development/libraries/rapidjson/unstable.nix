@@ -30,6 +30,9 @@ stdenv.mkDerivation rec {
       url = "https://git.alpinelinux.org/aports/plain/community/rapidjson/do-not-include-gtest-src-dir.patch?id=9e5eefc7a5fcf5938a8dc8a3be8c75e9e6809909";
       hash = "sha256-BjSZEwfCXA/9V+kxQ/2JPWbc26jQn35CfN8+8NW24s4=";
     })
+
+    # Due to some update in nixpkgs, valgrind is broken here
+    ./0000-unstable-skip-valgrind-test.patch
   ];
 
   # for tests, adding gtest to checkInputs does not work
