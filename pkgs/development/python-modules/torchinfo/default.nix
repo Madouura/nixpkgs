@@ -35,6 +35,8 @@ buildPythonPackage rec {
     "test_eval_order_doesnt_matter"
     # AssertionError in output
     "test_google"
+    # "addmm_impl_cpu_" not implemented for 'Half'
+    "test_input_size_half_precision"
   ];
 
   disabledTestPaths = [
