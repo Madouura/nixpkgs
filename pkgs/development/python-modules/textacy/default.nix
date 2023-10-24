@@ -17,6 +17,7 @@
 , scipy
 , spacy
 , tqdm
+, floret
 }:
 
 buildPythonPackage rec {
@@ -49,6 +50,7 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    floret
   ];
 
   pytestFlagsArray = [
