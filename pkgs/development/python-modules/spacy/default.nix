@@ -15,7 +15,6 @@
 , pathy
 , preshed
 , pydantic
-, pytest
 , python
 , pythonOlder
 , pythonRelaxDepsHook
@@ -29,6 +28,8 @@
 , typer
 , typing-extensions
 , wasabi
+, weasel
+, pytestCheckHook
 , writeScript
 , nix
 , git
@@ -37,23 +38,16 @@
 
 buildPythonPackage rec {
   pname = "spacy";
-  version = "3.6.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "3.7.2";
+  pyproject = true;
+  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-YyOphwauLVVhaUsDqLC1dRiHoAKQOkiU5orrKcxnIWY=";
+    hash = "sha256-zt9JJ78NP+x3OmzkjV0skb2wL+08fV7Ae9uHPxEm8aA=";
   };
 
-  pythonRelaxDeps = [
-    "typer"
-  ];
-
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
+  nativeBuildInputs = [ pythonRelaxDepsHook ];
 
   propagatedBuildInputs = [
     blis
@@ -77,38 +71,25 @@ buildPythonPackage rec {
     tqdm
     typer
     wasabi
+    weasel
   ] ++ lib.optionals (pythonOlder "3.8") [
     typing-extensions
-  ];  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "thinc>=8.1.8,<8.2.0" "thinc>=8.1.8"
-  '';
-
-  nativeCheckInputs = [
-    pytest
   ];
 
+  pythonRelaxDeps = [ "typer" ];
   doCheck = false;
-
-  checkPhase = ''
-    ${python.interpreter} -m pytest spacy/tests --vectors --models --slow
-  '';
-
-  pythonImportsCheck = [
-    "spacy"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+  pythonImportsCheck = [ "spacy" ];
 
   passthru = {
     updateScript = writeScript "update-spacy" ''
-    #!${stdenv.shell}
-    set -eou pipefail
-    PATH=${lib.makeBinPath [ nix git nix-update ]}
-
-    nix-update python3Packages.spacy
-
-    # update spacy models as well
-    echo | nix-shell maintainers/scripts/update.nix --argstr package python3Packages.spacy_models.en_core_web_sm
+      #!/usr/bin/env nix-shell
+      #!nix-shell -i bash -p nix-update
+      nix-update python3Packages.spacy
+      # update spacy models as well
+      nix-update python3Packages.spacy_models.en_core_web_sm
     '';
+
     tests.annotation = callPackage ./annotation-test { };
   };
 
