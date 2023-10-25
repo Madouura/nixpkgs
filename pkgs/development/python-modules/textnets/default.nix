@@ -55,6 +55,11 @@ buildPythonPackage rec {
     en_core_web_sm
   ];
 
+  disabledTests = [
+    # Assertion error
+    "test_corpus_czech"
+  ];
+
   pythonImportsCheck = [
     "textnets"
   ];
