@@ -8,6 +8,9 @@
 , spacy
 , spacy-pkuseg
 , spacy-transformers
+, pip
+, docopt-ng
+, cloudpathlib
 , writeScript
 , stdenv
 , jq
@@ -46,6 +49,12 @@ let
       ];
 
       pythonImportsCheck = [ pname ];
+
+      nativeCheckInputs = [
+        pip
+        docopt-ng
+        cloudpathlib
+      ];
 
       passthru.updateScript = writeScript "update-spacy-models" ''
         #!${stdenv.shell}
