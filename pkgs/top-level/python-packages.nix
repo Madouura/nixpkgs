@@ -14028,6 +14028,11 @@ self: super: with self; {
     rocmSupport = false;
   };
 
+  torchWithoutCudaAndRocm = self.torch.override {
+    cudaSupport = false;
+    rocmSupport = false;
+  };
+
   torch-tb-profiler = callPackage ../development/python-modules/torch-tb-profiler/default.nix { };
 
   torchaudio = callPackage ../development/python-modules/torchaudio { };

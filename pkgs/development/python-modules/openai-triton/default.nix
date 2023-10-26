@@ -39,48 +39,72 @@ let
 in
 buildPythonPackage rec {
   pname = "triton";
-  version = "2.0.0";
-  format = "setuptools";
+  version = "2.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "openai";
     repo = pname;
-    rev = "v${version}";
-    hash = "sha256-9GZzugab+Pdt74Dj6zjlEzjj4BcJ69rzMJmqcVMxsKU=";
+    rev = "da40a1e984bf57c4708daf603eb427442025f99b"; # 2.1.x -- seems to be what pypi is on
+    hash = "sha256-aaZzugab+Pdt74Dj6zjlEzjj4BcJ69rzMJmqcVMxsKU=";
   };
 
   patches = [
-    # TODO: there have been commits upstream aimed at removing the "torch"
-    # circular dependency, but the patches fail to apply on the release
-    # revision. Keeping the link for future reference
-    # Also cf. https://github.com/openai/triton/issues/1374
+    # Necessary fixes according to https://github.com/openai/triton/issues/2479#issuecomment-1757381480
+    # https://github.com/openai/triton/pull/2181
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/7fc7c457a00e3870d4c4cf951ba3cfac1eb8e974.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
 
-    # (fetchpatch {
-    #   url = "https://github.com/openai/triton/commit/fc7c0b0e437a191e421faa61494b2ff4870850f1.patch";
-    #   hash = "sha256-f0shIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
-    # })
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/08e55ba61a2dd056958329657b52072dddec45c1.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
+
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/f498901e348c04fb58927364313ba1626031f79b.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
+
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/bcf8bd4266c070320e7b4c285232cfe6f4281272.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
   ] ++ lib.optionals (!cudaSupport) [
-    # Manually add the ptxas version md5 sum
-    # This allows us to ensure compatibility with other derivations
-    # that may have `openai-cuda` or `cudaPackages` as an input
-    # Check this every update of (this package's version of) cudaPackages and this derivation!
-    # (`cudaPackages_12_0.cuda_nvcc`) `ptxas --version | md5sum`
-    (substituteAll {
-      src = ./0000-strip-and-replace-ptxas.patch;
-      ptxas_version = "0afa0fd697019085a7525fcab2503fcf";
+    # Change hash to not require ptxas
+    # https://github.com/openai/triton/pull/2476
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/f0da2374042d061557951cfb308684aa27cbbdc9.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
+
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/b12aba23f24be17715b546aa8207b91c5ea1880e.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
+
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/4a3b9e6c10b01b615b78269f9d39f439566040bf.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
+    })
+
+    # Make cuda executables optional (Thanks SomeoneSerge!)
+    # https://github.com/openai/triton/pull/2546
+    (fetchpatch {
+      url = "https://github.com/openai/triton/commit/131c4497754664e0923469ffffbdca009579f2c5.patch";
+      hash = "sha256-aaahIqHJkVvuil2Yku7vuqWFn7VCRKFSFjYRlwx25ig=";
     })
   ];
 
   nativeBuildInputs = [
     pythonRelaxDepsHook
-    # pytestCheckHook # Requires torch (circular dependency) and probably needs GPUs:
+    pytestCheckHook
     cmake
     ninja
+  ];
 
-    # Note for future:
-    # These *probably* should go in depsTargetTarget
-    # ...but we cannot test cross right now anyway
-    # because we only support cudaPackages on x86_64-linux atm
+  depsTargetTarget = [
     lit
     llvm
   ];
@@ -165,19 +189,17 @@ buildPythonPackage rec {
     cd test/unit
   '';
 
-  # Circular dependency on torch
-  # pythonImportsCheck = [
-  #   "triton"
-  #   "triton.language"
-  # ];
+  pythonImportsCheck = [
+    "triton"
+    "triton.language"
+  ];
 
   # Ultimately, torch is our test suite:
-  passthru.tests = { inherit torchWithRocm; };
+  passthru.tests = {
+    inherit torchWithoutCuda torchWithRocm torchWithCuda;
+  };
 
   pythonRemoveDeps = [
-    # Circular dependency, cf. https://github.com/openai/triton/issues/1374
-    "torch"
-
     # CLI tools without dist-info
     "cmake"
     "lit"
