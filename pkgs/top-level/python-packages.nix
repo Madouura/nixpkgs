@@ -13769,6 +13769,14 @@ self: super: with self; {
     cudaSupport = false;
   };
 
+  tensorflowWithRocm = self.tensorflow.override {
+    rocmSupport = true;
+  };
+
+  tensorflowWithoutRocm = self.tensorflow.override {
+    rocmSupport = false;
+  };
+
   tensorly = callPackage ../development/python-modules/tensorly { };
 
   tensorrt = callPackage ../development/python-modules/tensorrt { };

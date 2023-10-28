@@ -1,5 +1,5 @@
 { stdenv, bazel_5, buildBazelPackage, lib, fetchFromGitHub, symlinkJoin
-, addOpenGLRunpath, fetchpatch, fetchzip, linkFarm
+, addOpenGLRunpath, fetchpatch, fetchzip, linkFarm, substituteAll
 # Python deps
 , buildPythonPackage, pythonOlder, python
 # Python libraries
@@ -23,8 +23,12 @@
 , cudaCapabilities ? cudaPackages.cudaFlags.cudaCapabilities
 , mklSupport ? false, mkl
 , tensorboardSupport ? true
+# ROCm support
+, rocmSupport ? false
+, rocmPackages
+, gpuTargets ? rocmPackages.clr.gpuTargets
 # XLA without CUDA is broken
-, xlaSupport ? cudaSupport
+, xlaSupport ? (cudaSupport || rocmSupport)
 , sse42Support ? stdenv.hostPlatform.sse4_2Support
 , avx2Support  ? stdenv.hostPlatform.avx2Support
 , fmaSupport   ? stdenv.hostPlatform.fmaSupport
@@ -71,7 +75,7 @@ assert cudaSupport -> cudatoolkit != null
                    && cudnn != null;
 
 # unsupported combination
-assert ! (stdenv.isDarwin && cudaSupport);
+assert ! (stdenv.isDarwin && (cudaSupport || rocmSupport));
 
 let
   withTensorboard = (pythonOlder "3.6") || tensorboardSupport;
@@ -92,12 +96,37 @@ let
   # Tensorflow expects bintools at hard-coded paths, e.g. /usr/bin/ar
   # The only way to overcome that is to set GCC_HOST_COMPILER_PREFIX,
   # but that path must contain cc as well, so we merge them
-  cudatoolkit_cc_joined = symlinkJoin {
+  cc_joined = symlinkJoin {
     name = "${stdenv.cc.name}-merged";
     paths = [
       stdenv.cc
       binutils.bintools # for ar, dwp, nm, objcopy, objdump, strip
     ];
+  };
+
+  rocmtoolkit_joined = symlinkJoin {
+    name = "rocm-merged";
+
+    paths = with rocmPackages; [
+      rocm-core clr roctracer rccl miopen rocprim
+      hipcub rocsparse hipsparse rocsolver rocblas
+      rocrand rocthrust rocfft hipfft hipsolver
+      hipblas rocminfo rocm-thunk rocm-comgr
+      rocm-device-libs rocm-runtime llvm.clang
+      llvm.clang.cc llvm.mlir llvm.openmp
+    ];
+
+    postBuild = ''
+      # Tensorflow expects LLVM to be located at `$ROCM_PATH/llvm`
+      ln -s $out $out/llvm
+
+      # Tensorflow expects `hipcc` at `$ROCM_PATH/hip/bin` for some reason
+      rm -rf $out/hip/bin
+      ln -s $out/bin $out/hip/bin
+
+      # Remove nix-support, always causes problems
+      rm -rf $out/nix-support
+    '';
   };
 
   # Needed for _some_ system libraries, grep INCLUDEDIR.
@@ -111,7 +140,12 @@ let
   tfFeature = x: if x then "1" else "0";
 
   version = "2.13.0";
-  variant = lib.optionalString cudaSupport "-gpu";
+
+  variant =
+    if cudaSupport then "-cuda"
+    else if rocmSupport then "-rocm"
+    else "";
+
   pname = "tensorflow${variant}";
 
   pythonEnv = python.withPackages (_:
@@ -254,6 +288,8 @@ let
     ] ++ lib.optionals cudaSupport [
       cudatoolkit
       cudnn
+    ] ++ lib.optionals rocmSupport [
+      rocmtoolkit_joined
     ] ++ lib.optionals mklSupport [
       mkl
     ] ++ lib.optionals stdenv.isDarwin [
@@ -329,15 +365,19 @@ let
     CC_OPT_FLAGS = " ";
 
     # https://github.com/tensorflow/tensorflow/issues/14454
-    TF_NEED_MPI = tfFeature cudaSupport;
+    TF_NEED_MPI = tfFeature (cudaSupport || rocmSupport);
 
     TF_NEED_CUDA = tfFeature cudaSupport;
     TF_CUDA_PATHS = lib.optionalString cudaSupport "${cudatoolkit_joined},${cudnn},${nccl}";
     TF_CUDA_COMPUTE_CAPABILITIES = lib.concatStringsSep "," cudaCapabilities;
 
+    TF_NEED_ROCM = tfFeature rocmSupport;
+    TF_ROCM_AMDGPU_TARGETS = lib.optionalString rocmSupport (lib.strings.concatStringsSep "," gpuTargets);
+    ROCM_PATH = lib.optionalString rocmSupport rocmtoolkit_joined;
+
     # Needed even when we override stdenv: e.g. for ar
-    GCC_HOST_COMPILER_PREFIX = lib.optionalString cudaSupport "${cudatoolkit_cc_joined}/bin";
-    GCC_HOST_COMPILER_PATH = lib.optionalString cudaSupport "${cudatoolkit_cc_joined}/bin/cc";
+    GCC_HOST_COMPILER_PREFIX = lib.optionalString (cudaSupport || rocmSupport) "${cc_joined}/bin";
+    GCC_HOST_COMPILER_PATH = lib.optionalString (cudaSupport || rocmSupport) "${cc_joined}/bin/cc";
 
     patches = [
       "${gentoo-patches}/0002-systemlib-Latest-absl-LTS-has-split-cord-libs.patch"
@@ -356,6 +396,12 @@ let
       ./pybind11_protobuf_newer_version.patch
     ] ++ lib.optionals (stdenv.hostPlatform.system == "aarch64-darwin") [
       ./absl_to_std.patch
+    ] ++ lib.optionals rocmSupport [
+      (substituteAll {
+        src = ./0000-rocm-support.patch;
+        clang_include = "${rocmPackages.llvm.clang}/resource-root/include";
+        hip_include = "${rocmPackages.clr}/include/hip";
+      })
     ];
 
     postPatch = ''
@@ -369,6 +415,9 @@ let
       # include security vulnerabilities. So we make it optional.
       # https://github.com/tensorflow/tensorflow/issues/20280#issuecomment-400230560
       sed -i '/tensorboard ~=/d' tensorflow/tools/pip_package/setup.py
+    '' + lib.optionals rocmSupport ''
+      substituteInPlace tensorflow/compiler/xla/stream_executor/rocm/rocm_blas.h \
+        --replace "rocm/include/rocblas.h" "rocm/include/rocblas/rocblas.h"
     '';
 
     # https://github.com/tensorflow/tensorflow/pull/39470
@@ -490,7 +539,7 @@ let
       license = licenses.asl20;
       maintainers = with maintainers; [ abbradar ];
       platforms = with platforms; linux ++ darwin;
-      broken = stdenv.isDarwin || !(xlaSupport -> cudaSupport);
+      broken = stdenv.isDarwin || !(xlaSupport -> (cudaSupport || rocmSupport)) || (cudaSupport && rocmSupport);
     } // lib.optionalAttrs stdenv.isDarwin {
       timeout = 86400; # 24 hours
       maxSilent = 14400; # 4h, double the default of 7200s

@@ -344,7 +344,22 @@ in rec {
   # Don't put these into `propagatedBuildInputs` unless you want PATH/PYTHONPATH issues!
   # See: https://rocm.docs.amd.com/en/latest/_images/image.004.png
   # See: https://rocm.docs.amd.com/en/latest/deploy/linux/os-native/package_manager_integration.html
-  meta = rec {
+  meta = let
+    rocm-llvm-joined = symlinkJoin {
+      name = "rocm-llvm-joined-meta";
+
+      paths = [
+        llvm.clang
+        llvm.clang.cc
+        llvm.mlir
+        llvm.openmp
+      ];
+
+      postBuild = ''
+        ln -s $out $out/llvm
+      '';
+    };
+  in rec {
     rocm-developer-tools = symlinkJoin {
       name = "rocm-developer-tools-meta";
 
@@ -375,9 +390,7 @@ in rec {
       name = "rocm-ml-libraries-meta";
 
       paths = [
-        llvm.clang
-        llvm.mlir
-        llvm.openmp
+        rocm-llvm-joined
         rocm-core
         miopen-hip
         rocm-hip-libraries
@@ -436,9 +449,7 @@ in rec {
 
       paths = [
         rocm-core
-        llvm.clang
-        llvm.mlir
-        llvm.openmp # openmp-extras-devel (https://github.com/ROCm-Developer-Tools/aomp)
+        rocm-llvm-joined
         rocm-language-runtime
       ];
     };
@@ -475,9 +486,7 @@ in rec {
         rocm-core
         hipify
         rocm-cmake
-        llvm.clang
-        llvm.mlir
-        llvm.openmp
+        rocm-llvm-joined
         rocm-thunk
         rocm-runtime
         rocm-hip-runtime
@@ -502,7 +511,7 @@ in rec {
         rocm-runtime
         rocm-core
         rocm-comgr
-        llvm.openmp # openmp-extras-runtime (https://github.com/ROCm-Developer-Tools/aomp)
+        rocm-llvm-joined
       ];
     };
 
