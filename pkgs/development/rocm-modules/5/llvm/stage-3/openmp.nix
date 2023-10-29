@@ -15,7 +15,7 @@
 , lit
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   targetName = "openmp";
   targetDir = targetName;

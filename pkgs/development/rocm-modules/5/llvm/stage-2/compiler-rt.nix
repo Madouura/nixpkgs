@@ -6,7 +6,7 @@
 , glibc
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build

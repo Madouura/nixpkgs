@@ -3,7 +3,7 @@
 , rocmUpdateScript
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildMan = false; # No man pages to build
   targetName = "libc";

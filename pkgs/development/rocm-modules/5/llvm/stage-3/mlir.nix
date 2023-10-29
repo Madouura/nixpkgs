@@ -9,7 +9,7 @@
 , lit
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildDocs = false; # No decent way to hack this to work
   buildMan = false; # No man pages to build

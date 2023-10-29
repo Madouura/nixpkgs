@@ -3,7 +3,7 @@
 , llvm
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit rocmUpdateScript;
   buildMan = false; # No man pages to build
   targetName = "lld";

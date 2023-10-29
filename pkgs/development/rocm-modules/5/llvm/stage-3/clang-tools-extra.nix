@@ -6,7 +6,7 @@
 , gtest
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildTests = false; # `invalid operands to binary expression ('std::basic_stringstream<char>' and 'const llvm::StringRef')`
   targetName = "clang-tools-extra";

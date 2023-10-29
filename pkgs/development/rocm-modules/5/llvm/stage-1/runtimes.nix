@@ -4,7 +4,7 @@
 , llvm
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit rocmUpdateScript;
   buildDocs = false;
   buildMan = false;

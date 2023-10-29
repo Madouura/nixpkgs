@@ -10,7 +10,7 @@
 , python3Packages
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildTests = false; # FIXME: Bad pathing for clang executable in tests, using relative path most likely
   targetName = "lldb";

@@ -8,7 +8,7 @@
 
 let
   spirv = (spirv-llvm-translator.override { inherit llvm; });
-in callPackage ../base.nix rec {
+in callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build

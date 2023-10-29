@@ -4,7 +4,7 @@
 , libcxxabi
 }:
 
-callPackage ../base.nix rec {
+callPackage ../generic.nix rec {
   inherit stdenv rocmUpdateScript;
   rocm-libcxxabi = libcxxabi;
   buildMan = false; # No man pages to build
