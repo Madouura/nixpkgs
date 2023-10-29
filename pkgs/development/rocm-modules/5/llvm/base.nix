@@ -40,6 +40,7 @@
 , extraPostInstall ? ""
 , hardeningDisable ? [ ]
 , requiredSystemFeatures ? [ ]
+, rocm-libcxxabi ? { }
 , extraLicenses ? [ ]
 , isBroken ? false
 }:
@@ -83,7 +84,7 @@ in stdenv.mkDerivation (finalAttrs: {
     doxygen
     sphinx
     python3Packages.recommonmark
-  ] ++ lib.optionals (buildTests && !finalAttrs.passthru.isLLVM) [
+  ] ++ lib.optionals (buildTests && (targetDir != "llvm")) [
     lit
   ] ++ extraNativeBuildInputs;
 
@@ -95,7 +96,7 @@ in stdenv.mkDerivation (finalAttrs: {
     mpfr
   ] ++ extraBuildInputs;
 
-  propagatedBuildInputs = lib.optionals finalAttrs.passthru.isLLVM [
+  propagatedBuildInputs = lib.optionals (targetDir == "llvm") [
     zlib
     ncurses
   ];
@@ -104,11 +105,11 @@ in stdenv.mkDerivation (finalAttrs: {
 
   cmakeFlags = [
     "-DLLVM_TARGETS_TO_BUILD=${builtins.concatStringsSep ";" llvmTargetsToBuild'}"
-  ] ++ lib.optionals (finalAttrs.passthru.isLLVM && targetProjects != [ ]) [
+  ] ++ lib.optionals (targetDir == "llvm" && targetProjects != [ ]) [
     "-DLLVM_ENABLE_PROJECTS=${lib.concatStringsSep ";" targetProjects}"
-  ] ++ lib.optionals ((finalAttrs.passthru.isLLVM || targetDir == "runtimes") && targetRuntimes != [ ]) [
+  ] ++ lib.optionals ((targetDir == "llvm" || targetDir == "runtimes") && targetRuntimes != [ ]) [
     "-DLLVM_ENABLE_RUNTIMES=${lib.concatStringsSep ";" targetRuntimes}"
-  ] ++ lib.optionals finalAttrs.passthru.isLLVM [
+  ] ++ lib.optionals (targetDir == "llvm") [
     "-DLLVM_INSTALL_UTILS=ON"
     "-DLLVM_INSTALL_GTEST=ON"
   ] ++ lib.optionals (buildDocs || buildMan) [
@@ -125,9 +126,9 @@ in stdenv.mkDerivation (finalAttrs: {
     "-DLLVM_EXTERNAL_LIT=${lit}/bin/.lit-wrapped"
   ] ++ extraCMakeFlags;
 
-  postPatch = lib.optionalString finalAttrs.passthru.isLLVM ''
+  postPatch = lib.optionalString (targetDir == "llvm") ''
     patchShebangs lib/OffloadArch/make_generated_offload_arch_h.sh
-  '' + lib.optionalString (buildTests && finalAttrs.passthru.isLLVM) ''
+  '' + lib.optionalString (buildTests && targetDir == "llvm") ''
     # FileSystem permissions tests fail with various special bits
     rm test/tools/llvm-objcopy/ELF/mirror-permissions-unix.test
     rm unittests/Support/Path.cpp
@@ -144,8 +145,10 @@ in stdenv.mkDerivation (finalAttrs: {
   '' + extraPostInstall;
 
   passthru = {
-    isLLVM = targetDir == "llvm";
+    isLLVM = targetDir == "llvm" || rocm-libcxxabi != { };
     isClang = targetDir == "clang" || builtins.elem "clang" targetProjects;
+    cxxabi = lib.optionalAttrs (rocm-libcxxabi != { }) rocm-libcxxabi;
+    libName = lib.optionalString (rocm-libcxxabi != { }) "c++abi";
 
     updateScript = rocmUpdateScript {
       name = finalAttrs.pname;

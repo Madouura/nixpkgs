@@ -35,7 +35,7 @@ in rec {
   libc = callPackage ./stage-2/libc.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
   libunwind = callPackage ./stage-2/libunwind.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
   libcxxabi = callPackage ./stage-2/libcxxabi.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
-  libcxx = callPackage ./stage-2/libcxx.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
+  libcxx = callPackage ./stage-2/libcxx.nix { inherit rocmUpdateScript libcxxabi; stdenv = rStdenv; };
   compiler-rt = callPackage ./stage-2/compiler-rt.nix { inherit rocmUpdateScript llvm; stdenv = rStdenv; };
 
   ## Stage 3 ##

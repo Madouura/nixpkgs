@@ -1,10 +1,12 @@
 { stdenv
 , callPackage
 , rocmUpdateScript
+, libcxxabi
 }:
 
 callPackage ../base.nix rec {
   inherit stdenv rocmUpdateScript;
+  rocm-libcxxabi = libcxxabi;
   buildMan = false; # No man pages to build
   targetName = "libcxx";
   targetDir = "runtimes";
