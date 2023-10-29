@@ -138,6 +138,8 @@ stdenv.mkDerivation (finalAttrs: {
     };
   };
 
+  hardeningDisable = [ "stackprotector" ];
+
   meta = with lib; {
     description = "ROCm SPARSE implementation";
     homepage = "https://github.com/ROCmSoftwarePlatform/rocSPARSE";
