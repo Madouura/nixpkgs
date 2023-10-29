@@ -44,8 +44,20 @@ in rec {
 
   ## Stage 3 ##
   # Helpers
-  clang = callPackage ./stage-3/clang.nix { inherit llvm lld clang-unwrapped bintools libc libunwind libcxxabi libcxx compiler-rt; };
+  clang = clangWithWarnings.override { disableWarnings = true; };
+  clangWithWarnings = callPackage ./stage-3/clang.nix { inherit llvm lld clang-unwrapped bintools bintoolsWithLibC libc libunwind libcxxabi libcxx compiler-rt; };
+  clangWithoutLLD = clangWithWarnings.override { useLLD = false; };
+  clangWithLibC = clangWithWarnings.override { useLibC = true; };
+  clangWithLibCXX = clangWithWarnings.override { useLibCXX = true; };
+  clangWithoutLibUnwind = clangWithWarnings.override { useLibUnwind = false; };
+  clangWithoutCompilerRt = clangWithWarnings.override { useCompilerRt = false; };
   rocmClangStdenv = overrideCC stdenv clang;
+  rocmClangStdenvWithWarnings = overrideCC stdenv clangWithWarnings;
+  rocmClangStdenvWithoutLLD = overrideCC stdenv clangWithoutLLD;
+  rocmClangStdenvWithLibC = overrideCC stdenv clangWithLibC;
+  rocmClangStdenvWithLibCXX = overrideCC stdenv clangWithLibCXX;
+  rocmClangStdenvWithoutLibUnwind = overrideCC stdenv clangWithoutLibUnwind;
+  rocmClangStdenvWithoutCompilerRt = overrideCC stdenv clangWithoutCompilerRt;
 
   # Projects
   clang-tools-extra = callPackage ./stage-3/clang-tools-extra.nix { inherit rocmUpdateScript llvm clang-unwrapped; stdenv = rocmClangStdenv; };

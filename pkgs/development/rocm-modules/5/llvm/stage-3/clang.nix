@@ -1,73 +1,129 @@
-{ stdenv
+{ lib
+, stdenv
 , wrapCCWith
+, symlinkJoin
 , llvm
-, lld
 , clang-unwrapped
+, lld
 , bintools
+, bintoolsWithLibC
 , libc
 , libunwind
 , libcxxabi
 , libcxx
 , compiler-rt
+, useLLD ? true
+, useLibC ? false
+, useLibCXX ? false
+, useLibUnwind ? true
+, useCompilerRt ? true
+, disableWarnings ? false
 }:
 
-wrapCCWith rec {
-  inherit libcxx bintools;
+let
+  cc = let
+    # Mimic a monolithic install
+    rocm-llvm-clang-joined = symlinkJoin {
+      name = "rocm-llvm-clang-joined";
 
-  # We do this to avoid HIP pathing problems, and mimic a monolithic install
-  cc = stdenv.mkDerivation (finalAttrs: {
-    inherit (clang-unwrapped) version;
+      paths = [
+        llvm
+        clang-unwrapped
+      ] ++ lib.optionals useLLD [
+        lld
+      ] ++ lib.optionals useLibC [
+        libc
+      ] ++ lib.optionals useLibCXX [
+        libcxxabi
+        libcxx
+      ] ++ lib.optionals useLibUnwind [
+        libunwind
+      ] ++ lib.optionals useCompilerRt [
+        compiler-rt
+      ];
+
+      postBuild = ''
+        clang_version=$(${clang-unwrapped}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+")
+        clang_dir="$out/lib/clang/$clang_version"
+        ln -sf $out/include/* $clang_dir/include
+        ln -s $out/lib $clang_dir
+      '' + lib.optionalString useLibUnwind ''
+        ln -sf ${clang-unwrapped}/lib/clang/$clang_version/include/unwind.h $clang_dir/include/unwind.h
+      '';
+    };
+  in stdenv.mkDerivation (finalAttrs: {
     pname = "rocm-llvm-clang";
+    inherit (clang-unwrapped) version;
+    dontPatch = true;
+    dontConfigure = true;
+    dontBuild = true;
     dontUnpack = true;
+    dontFixup = true;
 
     installPhase = ''
       runHook preInstall
-
-      clang_version=`${clang-unwrapped}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+"`
-      mkdir -p $out/{bin,include/c++/v1,lib/{cmake,clang/$clang_version/{include,lib}},libexec,share}
-
-      for path in ${llvm} ${clang-unwrapped} ${lld} ${libc} ${libunwind} ${libcxxabi} ${libcxx} ${compiler-rt}; do
-        cp -as $path/* $out
-        chmod +w $out/{*,include/c++/v1,lib/{clang/$clang_version/include,cmake}}
-        rm -f $out/lib/libc++.so
-      done
-
-      ln -s $out/lib/* $out/lib/clang/$clang_version/lib
-      ln -sf $out/include/* $out/lib/clang/$clang_version/include
-
+      ln -s ${rocm-llvm-clang-joined} $out
       runHook postInstall
     '';
 
-    passthru.isClang = true;
+    passthru = {
+      isLLVM = true;
+      isClang = true;
+    };
   });
+in wrapCCWith {
+  inherit cc;
+
+  bintools =
+    if useLibC
+    then bintoolsWithLibC
+    else bintools;
+
+  libc =
+    if useLibC
+    then bintoolsWithLibC.libc
+    else bintools.libc;
+
+  libcxx =
+    if useLibCXX
+    then libcxx
+    else null;
 
   extraPackages = [
     llvm
+  ] ++ lib.optionals useLLD [
     lld
+  ] ++ lib.optionals useLibC [
     libc
-    libunwind
+  ] ++ lib.optionals useLibCXX [
     libcxxabi
+    libcxx
+  ] ++ lib.optionals useLibUnwind [
+    libunwind
+  ] ++ lib.optionals useCompilerRt [
     compiler-rt
   ];
 
   nixSupport.cc-cflags = [
     "-resource-dir=$out/resource-root"
+  ] ++ lib.optionals useLLD [
     "-fuse-ld=lld"
-    "-rtlib=compiler-rt"
+  ] ++ lib.optionals useLibUnwind [
     "-unwindlib=libunwind"
+  ] ++ lib.optionals useCompilerRt [
+    "-rtlib=compiler-rt"
+  ] ++ lib.optionals (!disableWarnings) [
     "-Wno-unused-command-line-argument"
+  ] ++ lib.optionals disableWarnings [
+    # ROCm-related warnings are frequent, spammy, and can impede actual package-side debugging
+    "-Wno-everything"
   ];
 
   extraBuildCommands = ''
-    clang_version=`${cc}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+"`
-    mkdir -p $out/resource-root
-    ln -s ${cc}/lib/clang/$clang_version/{include,lib} $out/resource-root
+    clang_version=$(${cc}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+")
+    ln -s ${cc}/lib/clang/$clang_version $out/resource-root
 
-    # Not sure why, but hardening seems to make things break
-    echo "" > $out/nix-support/add-hardening.sh
-
-    # GPU compilation uses builtin `lld`
-    substituteInPlace $out/bin/{clang,clang++} \
-      --replace "-MM) dontLink=1 ;;" "-MM | --cuda-device-only) dontLink=1 ;;''\n--cuda-host-only | --cuda-compile-host-device) dontLink=0 ;;"
+    # Add various binaries that the user may want
+    ln -s ${cc}/bin/* $out/bin 2>/dev/null || true
   '';
 }
