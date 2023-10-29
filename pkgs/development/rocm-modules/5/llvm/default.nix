@@ -23,16 +23,20 @@ let
   # Helpers
   bintools-unwrapped = callPackage ./stage-2/bintools-unwrapped.nix { inherit llvm lld; };
   bintools = wrapBintoolsWith { bintools = bintools-unwrapped; };
+  bintoolsWithLibC = wrapBintoolsWith { inherit libc; bintools = bintools-unwrapped; };     
   rStdenv = callPackage ./stage-2/rstdenv.nix { inherit llvm clang-unwrapped lld runtimes bintools; };
+
+  # Runtimes
+  libc = callPackage ./stage-2/libc.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
 in rec {
   inherit
   llvm
   clang-unwrapped
   lld
-  bintools;
+  bintools
+  bintoolsWithLibC
+  libc;
 
-  # Runtimes
-  libc = callPackage ./stage-2/libc.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
   libunwind = callPackage ./stage-2/libunwind.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
   libcxxabi = callPackage ./stage-2/libcxxabi.nix { inherit rocmUpdateScript; stdenv = rStdenv; };
   libcxx = callPackage ./stage-2/libcxx.nix { inherit rocmUpdateScript libcxxabi; stdenv = rStdenv; };
