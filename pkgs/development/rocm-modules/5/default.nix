@@ -102,8 +102,7 @@ in rec {
 
   # Eventually will be in the LLVM repo
   hipcc = callPackage ./hipcc {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
   # Replaces hip, opencl-runtime, and rocclr

@@ -1,8 +1,10 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, commonNativeBuildInputs
+, commonCMakeFlags
 , rocmUpdateScript
-, cmake
+, rocmPackages_5
 , lsb-release
 }:
 
@@ -17,7 +19,8 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-lJX6nF1V4YmK5ai7jivXlRnG3doIOf6X9CWLHVdRuVg=";
   };
 
-  nativeBuildInputs = [ cmake ];
+  nativeBuildInputs = commonNativeBuildInputs;
+  cmakeFlags = commonCMakeFlags;
 
   postPatch = ''
     substituteInPlace src/hipBin_amd.h \
@@ -25,7 +28,7 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   postInstall = ''
-    rm -r $out/hip/bin
+    rm -rf $out/hip/bin
     ln -s $out/bin $out/hip/bin
   '';
 
@@ -41,6 +44,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor stdenv.cc.version;
+    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })
