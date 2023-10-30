@@ -75,10 +75,11 @@ in rec {
     inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
-  rocm-smi = python3Packages.callPackage ./rocm-smi {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
-  };
+  rocm-smi-variants = recurseIntoAttrs (callPackage ./rocm-smi {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
+  });
+
+  rocm-smi = rocm-smi-variants.shared;
 
   clang-ocl = callPackage ./clang-ocl {
     inherit rocmUpdateScript rocm-cmake rocm-device-libs;
