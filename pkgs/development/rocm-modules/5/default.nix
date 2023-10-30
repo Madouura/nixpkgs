@@ -106,11 +106,11 @@ in rec {
   };
 
   # Replaces hip, opencl-runtime, and rocclr
-  clr = callPackage ./clr {
-    inherit rocmUpdateScript hip-common hipcc rocm-device-libs rocm-comgr rocm-runtime roctracer rocminfo rocm-smi;
-    inherit (llvm) clang;
-    stdenv = llvm.rocmClangStdenv;
+  clr-variants = callPackage ./clr {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
+
+  clr = clr-variants.shared;
 
   hipify = callPackage ./hipify {
     inherit rocmUpdateScript;
