@@ -1,8 +1,10 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, commonNativeBuildInputs
+, commonCMakeFlags
 , rocmUpdateScript
-, cmake
+, rocmPackages_5
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -16,8 +18,12 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-jFAHLqf/AR27Nbuq8aypWiKqApNcTgG5LWESVjVCKIg=";
   };
 
-  nativeBuildInputs = [ cmake ];
-  cmakeFlags = [ "-DROCM_VERSION=${finalAttrs.version}" ];
+  nativeBuildInputs = commonNativeBuildInputs;
+
+  cmakeFlags = [
+    (lib.cmakeFeature "ROCM_VERSION" finalAttrs.version)
+    (lib.cmakeFeature "CPACK_PACKAGING_INSTALL_PREFIX" (placeholder "out"))
+  ] ++ commonCMakeFlags;
 
   passthru.updateScript = rocmUpdateScript {
     name = finalAttrs.pname;
@@ -33,6 +39,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ mit ];
     maintainers = teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor stdenv.cc.version;
+    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })

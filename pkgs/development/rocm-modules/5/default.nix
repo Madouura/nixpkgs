@@ -1,9 +1,13 @@
-{ callPackage
+{ lib
+, callPackage
 , recurseIntoAttrs
 , symlinkJoin
 , fetchFromGitHub
-, cudaPackages
+, rocmPackages_5
 , python3Packages
+, pkg-config
+, cmake
+, ninja
 , elfutils
 , boost179
 , opencv
@@ -13,25 +17,41 @@
 }:
 
 let
+  stdenv = rocmPackages_5.llvm.rocmClangStdenv;
+
+  commonNativeBuildInputs = [
+    pkg-config
+    cmake
+    ninja
+    rocmPackages_5.rocm-cmake
+  ];
+
+  # Manually define CMAKE_INSTALL_<DIR>
+  # See: https://github.com/RadeonOpenCompute/rocm-cmake/issues/121
+  commonCMakeFlags = [
+    (lib.cmakeFeature "CMAKE_INSTALL_BINDIR" "bin")
+    (lib.cmakeFeature "CMAKE_INSTALL_LIBDIR" "lib")
+    (lib.cmakeFeature "CMAKE_INSTALL_INCLUDEDIR" "include")
+  ];
+
   rocmUpdateScript = callPackage ./update.nix { };
 in rec {
   ## RadeonOpenCompute ##
   llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { inherit rocmUpdateScript rocm-device-libs rocm-runtime rocm-thunk clr; });
 
-  rocm-core = callPackage ./rocm-core {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
-  };
-
   rocm-cmake = callPackage ./rocm-cmake {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
+    inherit stdenv commonCMakeFlags rocmUpdateScript;
   };
 
-  rocm-thunk = callPackage ./rocm-thunk {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
+  rocm-core = callPackage ./rocm-core {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
+
+  rocm-thunk-variants = recurseIntoAttrs (callPackage ./rocm-thunk {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
+  });
+
+  rocm-thunk = rocm-thunk-variants.static;
 
   rocm-smi = python3Packages.callPackage ./rocm-smi {
     inherit rocmUpdateScript;
