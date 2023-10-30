@@ -1,4 +1,4 @@
-{ testPackage }:
+{ testedPackage }:
 
 prev: {
   pname = "${prev.pname}-tests-reopen";
@@ -6,26 +6,19 @@ prev: {
 
   postPatch = ''
     substituteInPlace CMakeLists.txt \
-      --replace "\''$ENV{ROOT_OF_ROOTS}/out/lib" "\"${testPackage}/lib\"" \
-      --replace "\''$ENV{LIBHSAKMT_ROOT}" "${testPackage}"
+      --replace "\''$ENV{ROOT_OF_ROOTS}/out/lib" "\"${testedPackage}/lib\"" \
+      --replace "\''$ENV{LIBHSAKMT_ROOT}" "${testedPackage}"
 
     substituteInPlace kmtreopen.c \
-      --replace "libhsakmt.so" "${testPackage}/lib/libhsakmt.so"
-  '';
-
-  doCheck = true;
-
-  checkPhase = ''
-    runHook preCheck
-    ./kmtreopen
-    runHook postCheck
+      --replace "libhsakmt.so" "${testedPackage}/lib/libhsakmt.so"
   '';
 
   installPhase = ''
     runHook preInstall
-    touch $out
+    cp -a kmtreopen $out
     runHook postInstall
   '';
 
+  # Needs to be ran in `impureTests`
   meta.broken = true;
 }

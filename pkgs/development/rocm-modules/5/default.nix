@@ -72,8 +72,7 @@ in rec {
   rocm-runtime = rocm-runtime-variants.shared.image;
 
   rocminfo = callPackage ./rocminfo {
-    inherit rocmUpdateScript rocm-cmake rocm-runtime;
-    stdenv = llvm.rocmClangStdenv;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
   rocm-smi = python3Packages.callPackage ./rocm-smi {

@@ -42,19 +42,19 @@ stdenv.mkDerivation (finalAttrs: {
     prefixName = "rocm-thunk";
 
     tests = {
-      # Either just broken or needs something
       kfdtest = finalAttrs.finalPackage.overrideAttrs (callPackage ./tests/kfdtest.nix { });
 
-      # Needs to be run in impureTests
       reopen = finalAttrs.finalPackage.overrideAttrs (callPackage ./tests/reopen.nix {
-        testPackage = rocmPackages_5.rocm-thunk-variants.shared;
+        testedPackage = rocmPackages_5.rocm-thunk-variants.shared;
       });
     };
 
     impureTests = {
       reopen = callPackage ../impureTests.nix {
-        testedPackage = finalAttrs.passthru.tests.reopen.overrideAttrs { meta.broken = false; };
+        testedPackage = finalAttrs.finalPackage;
+        testName = "reopen";
         isNested = true;
+        isExecutable = true;
       };
     };
 
