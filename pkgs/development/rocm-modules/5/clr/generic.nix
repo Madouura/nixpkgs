@@ -128,10 +128,27 @@ in stdenv.mkDerivation (finalAttrs: {
     prefixName = "clr";
 
     tests = {
+      # Tests requires the shared variant
+      hip-tests = callPackage ./tests/hip-tests.nix {
+        inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
+        testedPackage = rocmPackages_5.clr-variants.shared;
+      };
+
       ocltst = callPackage ./tests/ocltst.nix { testedPackage = finalAttrs.finalPackage; };
+
+      # Tests requires the shared variant
+      opencl-example = callPackage ./tests/opencl-example.nix {
+        testedPackage = rocmPackages_5.clr-variants.shared;
+      };
     };
 
     impureTests = {
+      hip-tests = callPackage ../impureTests.nix {
+        testedPackage = rocmPackages_5.clr-variants.shared;
+        testName = "hip-tests";
+        isNested = true;
+      };
+
       ocltst = callPackage ../impureTests.nix {
         testedPackage = finalAttrs.finalPackage;
         testName = "ocltst";
@@ -139,13 +156,10 @@ in stdenv.mkDerivation (finalAttrs: {
         isExecutable = true;
       };
 
-      rocm-smi = callPackage ./test-rocm-smi.nix {
-        inherit (rocmPackages_5) rocm-smi;
-        clr = finalAttrs.finalPackage;
-      };
-
-      opencl-example = callPackage ./test-opencl-example.nix {
-        clr = finalAttrs.finalPackage;
+      opencl-example = callPackage ../impureTests.nix {
+        testedPackage = rocmPackages_5.clr-variants.shared;
+        testName = "opencl-example";
+        isNested = true;
       };
     };
 

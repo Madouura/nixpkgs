@@ -79,14 +79,14 @@ stdenv.mkDerivation (finalAttrs: {
 
     impureTests = {
       rocm-smi = callPackage ../impureTests.nix {
-        testedPackage = finalAttrs.finalPackage;
+        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rocm-smi";
         isNested = true;
         isExecutable = true;
       };
 
       rsmitst = callPackage ../impureTests.nix {
-        testedPackage = finalAttrs.finalPackage;
+        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rsmitst";
         isNested = true;
         isExecutable = true;

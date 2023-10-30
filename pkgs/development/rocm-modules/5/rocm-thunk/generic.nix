@@ -51,7 +51,7 @@ stdenv.mkDerivation (finalAttrs: {
 
     impureTests = {
       reopen = callPackage ../impureTests.nix {
-        testedPackage = finalAttrs.finalPackage;
+        testedPackage = rocmPackages_5.rocm-thunk-variants.shared;
         testName = "reopen";
         isNested = true;
         isExecutable = true;
