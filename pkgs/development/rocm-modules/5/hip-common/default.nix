@@ -2,6 +2,7 @@
 , stdenv
 , fetchFromGitHub
 , rocmUpdateScript
+, rocmPackages_5
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -15,15 +16,16 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-1Abit9qZCwrCVcnaFT4uMygFB9G6ovRasLmTsOsJ/Fw=";
   };
 
+  postPatch = ''
+    patchShebangs tests docs bin
+  '';
+
   dontConfigure = true;
   dontBuild = true;
 
   installPhase = ''
     runHook preInstall
-
-    mkdir -p $out
-    mv * $out
-
+    cp -a . $out
     runHook postInstall
   '';
 
@@ -39,6 +41,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor stdenv.cc.version;
+    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })

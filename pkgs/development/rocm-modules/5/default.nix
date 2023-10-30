@@ -98,7 +98,6 @@ in rec {
   ## ROCm-Developer-Tools ##
   hip-common = callPackage ./hip-common {
     inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
   };
 
   # Eventually will be in the LLVM repo
