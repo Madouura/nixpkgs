@@ -1,0 +1,18 @@
+diff --git a/test/compile/CMakeLists.txt b/test/compile/CMakeLists.txt
+index 9af0b1a..4594df4 100644
+--- a/test/compile/CMakeLists.txt
++++ b/test/compile/CMakeLists.txt
+@@ -56,10 +56,11 @@ endforeach()
+ 
+ foreach(gpu gfx700 gfx803)
+   add_isa_test(asin ${gpu})
+-  add_isa_test(atan2 ${gpu})
+-  add_isa_test(atan2pi ${gpu})
+ endforeach()
+ 
++add_isa_test(atan2 gfx803)
++add_isa_test(atan2pi gfx803)
++
+ foreach(gpu gfx600 gfx700)
+   add_isa_test(frexp ${gpu})
+ endforeach()

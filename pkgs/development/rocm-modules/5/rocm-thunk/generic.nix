@@ -38,12 +38,6 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeBool "BUILD_SHARED_LIBS" buildShared)
   ] ++ commonCMakeFlags;
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
-  };
-
   passthru = {
     prefixName = "rocm-thunk";
 
@@ -62,6 +56,12 @@ stdenv.mkDerivation (finalAttrs: {
         testedPackage = finalAttrs.passthru.tests.reopen.overrideAttrs { meta.broken = false; };
         isNested = true;
       };
+    };
+
+    updateScript = rocmUpdateScript {
+      name = finalAttrs.pname;
+      owner = finalAttrs.src.owner;
+      repo = finalAttrs.src.repo;
     };
   };
 

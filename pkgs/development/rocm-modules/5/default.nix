@@ -53,15 +53,14 @@ in rec {
 
   rocm-thunk = rocm-thunk-variants.static;
 
-  rocm-smi = python3Packages.callPackage ./rocm-smi {
-    inherit rocmUpdateScript;
-    stdenv = llvm.rocmClangStdenv;
+  # Eventually will be in the LLVM repo
+  rocm-device-libs = callPackage ./rocm-device-libs {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
   # Eventually will be in the LLVM repo
-  rocm-device-libs = callPackage ./rocm-device-libs {
-    inherit rocmUpdateScript rocm-cmake;
-    stdenv = llvm.rocmClangStdenv;
+  rocm-comgr = callPackage ./rocm-comgr {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript rocm-device-libs;
   };
 
   rocm-runtime = callPackage ./rocm-runtime {
@@ -69,14 +68,13 @@ in rec {
     stdenv = llvm.rocmClangStdenv;
   };
 
-  # Eventually will be in the LLVM repo
-  rocm-comgr = callPackage ./rocm-comgr {
-    inherit rocmUpdateScript rocm-cmake rocm-device-libs;
+  rocminfo = callPackage ./rocminfo {
+    inherit rocmUpdateScript rocm-cmake rocm-runtime;
     stdenv = llvm.rocmClangStdenv;
   };
 
-  rocminfo = callPackage ./rocminfo {
-    inherit rocmUpdateScript rocm-cmake rocm-runtime;
+  rocm-smi = python3Packages.callPackage ./rocm-smi {
+    inherit rocmUpdateScript;
     stdenv = llvm.rocmClangStdenv;
   };
 
