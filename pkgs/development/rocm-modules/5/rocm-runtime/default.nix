@@ -1,78 +1,38 @@
-{ lib
-, stdenv
-, fetchFromGitHub
+{ stdenv
+, callPackage
+, commonNativeBuildInputs
+, commonCMakeFlags
 , rocmUpdateScript
-, pkg-config
-, cmake
-, xxd
-, rocm-device-libs
-, rocm-thunk
-, libelf
-, libdrm
-, numactl
-, valgrind
-, libxml2
+, symlinkJoin
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "rocm-runtime";
-  version = "5.7.1";
-
-  src = fetchFromGitHub {
-    owner = "RadeonOpenCompute";
-    repo = "ROCR-Runtime";
-    rev = "rocm-${finalAttrs.version}";
-    hash = "sha256-D7Ahan5cxDhqPtV5iDDNys0A4FlxQ9oVRa2EeMoY5Qk=";
+let
+  generic = callPackage ./generic.nix {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
-  sourceRoot = "${finalAttrs.src.name}/src";
+  packages = {
+    static = rec {
+      default = generic.override {
+        buildShared = false;
+        imageSupport = false;
+      };
 
-  nativeBuildInputs = [
-    pkg-config
-    cmake
-    xxd
-  ];
+      image = default.override { imageSupport = true; };
+    };
 
-  buildInputs = [
-    rocm-thunk
-    libelf
-    libdrm
-    numactl
-    valgrind
-    libxml2
-  ];
+    shared = rec {
+      default = generic.override {
+        buildShared = true;
+        imageSupport = false;
+      };
 
-  postPatch = ''
-    patchShebangs image/blit_src/create_hsaco_ascii_file.sh
-    patchShebangs core/runtime/trap_handler/create_trap_handler_header.sh
-
-    substituteInPlace CMakeLists.txt \
-      --replace 'hsa/include/hsa' 'include/hsa'
-
-    # We compile clang before rocm-device-libs, so patch it in afterwards
-    # Replace object version: https://github.com/RadeonOpenCompute/ROCR-Runtime/issues/166 (TODO: Remove on LLVM update?)
-    substituteInPlace image/blit_src/CMakeLists.txt \
-      --replace '-cl-denorms-are-zero' '-cl-denorms-are-zero --rocm-device-lib-path=${rocm-device-libs}/amdgcn/bitcode' \
-      --replace '-mcode-object-version=4' '-mcode-object-version=5'
-  '';
-
-  fixupPhase = ''
-    rm -rf $out/hsa/*
-    ln -s $out/{include,lib} $out/hsa
-  '';
-
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
+      image = default.override { imageSupport = true; };
+    };
   };
-
-  meta = with lib; {
-    description = "Platform runtime for ROCm";
-    homepage = "https://github.com/RadeonOpenCompute/ROCR-Runtime";
-    license = with licenses; [ ncsa ];
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor stdenv.cc.version;
+in packages // {
+  full = symlinkJoin {
+    name = "${generic.prefixName}-full-${generic.version}";
+    paths = with packages; [ static.image shared.image ];
   };
-})
+}

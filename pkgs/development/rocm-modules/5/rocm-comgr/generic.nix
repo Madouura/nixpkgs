@@ -61,7 +61,7 @@ in stdenv.mkDerivation (finalAttrs: {
 
   meta = with lib; {
     description = "APIs for compiling and inspecting AMDGPU code objects";
-    homepage = "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport/tree/rocm-${finalAttrs.version}/lib/comgr";
+    homepage = "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport";
     license = licenses.ncsa;
     maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;

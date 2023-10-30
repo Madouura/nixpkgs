@@ -65,10 +65,11 @@ in rec {
 
   rocm-comgr = rocm-comgr-variants.shared;
 
-  rocm-runtime = callPackage ./rocm-runtime {
-    inherit rocmUpdateScript rocm-device-libs rocm-thunk;
-    stdenv = llvm.rocmClangStdenv;
+  rocm-runtime-variants = callPackage ./rocm-runtime {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
+
+  rocm-runtime = rocm-runtime-variants.shared.image;
 
   rocminfo = callPackage ./rocminfo {
     inherit rocmUpdateScript rocm-cmake rocm-runtime;
