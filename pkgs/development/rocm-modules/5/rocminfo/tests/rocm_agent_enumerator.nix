@@ -22,4 +22,5 @@ in stdenv.mkDerivation {
 
   dontInstall = true;
   dontFixup = true;
+  meta.maintainers = teams.rocm.members;
 }

@@ -76,9 +76,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = with lib; {
     description = "Platform runtime for ROCm";
-    homepage = "https://github.com/RadeonOpenCompute/ROCR-Runtime";
-    license = with licenses; [ ncsa ];
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
+    homepage = "https://github.com/ROCm-Developer-Tools/hip-tests";
+    license = with licenses; [ mit ];
+    maintainers = teams.rocm.members;
     platforms = platforms.linux;
     broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };

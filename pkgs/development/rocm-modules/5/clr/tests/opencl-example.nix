@@ -65,7 +65,7 @@ stdenv.mkDerivation {
     homepage = "https://github.com/OpenCL/AMD_APP_samples";
     license = licenses.bsd2;
     platforms = platforms.linux;
-    maintainers = lib.teams.rocm.members;
+    maintainers = teams.rocm.members;
     # Needs to be ran in `impureTests`
     broken = true;
   };

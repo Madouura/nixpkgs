@@ -77,8 +77,8 @@ in makeImpureTest {
   '')
   + commonEnd;
 
-  meta = {
-    maintainers = with lib.maintainers; [ Madouura ];
+  meta = with lib; {
+    maintainers = teams.rocm.members;
     broken = (bypassTestScript && !isExecutable);
   };
 }

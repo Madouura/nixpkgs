@@ -9,6 +9,9 @@ prev: {
     libxml2
   ] ++ prev.nativeBuildInputs;
 
-  # Either just broken or needs something
-  meta.broken = true;
+  meta = with lib; {
+    maintainers = teams.rocm.members;
+    # Needs to be ran in `impureTests`
+    broken = true;
+  };
 }

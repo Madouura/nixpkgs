@@ -19,6 +19,9 @@ prev: {
     runHook postInstall
   '';
 
-  # Needs to be ran in `impureTests`
-  meta.broken = true;
+  meta = with lib; {
+    maintainers = teams.rocm.members;
+    # Needs to be ran in `impureTests`
+    broken = true;
+  };
 }
