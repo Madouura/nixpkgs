@@ -59,9 +59,11 @@ in rec {
   };
 
   # Eventually will be in the LLVM repo
-  rocm-comgr = callPackage ./rocm-comgr {
-    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript rocm-device-libs;
+  rocm-comgr-variants = callPackage ./rocm-comgr {
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
+
+  rocm-comgr = rocm-comgr-variants.shared;
 
   rocm-runtime = callPackage ./rocm-runtime {
     inherit rocmUpdateScript rocm-device-libs rocm-thunk;
