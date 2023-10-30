@@ -1,4 +1,4 @@
-{ testedPackage }:
+{ testedPackage ? { } }:
 
 prev: {
   pname = "${prev.pname}-tests-reopen";

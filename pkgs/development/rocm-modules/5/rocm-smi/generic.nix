@@ -85,12 +85,12 @@ stdenv.mkDerivation (finalAttrs: {
         isExecutable = true;
       };
 
-      # 7 tests error, but is due to nix. Maybe nix-build needs a group or something?
       rsmitst = callPackage ../impureTests.nix {
         testedPackage = finalAttrs.finalPackage;
         testName = "rsmitst";
         isNested = true;
         isExecutable = true;
+        bypassTestScript = true;
       };
     };
 

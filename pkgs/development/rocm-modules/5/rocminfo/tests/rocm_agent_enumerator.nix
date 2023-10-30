@@ -1,5 +1,5 @@
 { stdenv
-, testedPackage
+, testedPackage ? { }
 }:
 
 let
