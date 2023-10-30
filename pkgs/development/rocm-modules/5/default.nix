@@ -82,8 +82,7 @@ in rec {
   rocm-smi = rocm-smi-variants.shared;
 
   clang-ocl = callPackage ./clang-ocl {
-    inherit rocmUpdateScript rocm-cmake rocm-device-libs;
-    stdenv = llvm.rocmClangStdenv;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
   # Unfree
