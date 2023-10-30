@@ -4,6 +4,7 @@
 , testName ? ""
 , isNested ? false
 , isExecutable ? false
+, prefixExec ? ""
 # `bypassTestScript` is for when we can't normally run a test to completion.
 # This is because of nix-build internal permission issues, we NEED root.
 # So, run it in `prepareRunCommands` and exit before the normal script.
@@ -52,7 +53,7 @@ in makeImpureTest {
 
   prepareRunCommands =
     lib.optionalString bypassTestScript (commonStart + commonMid + ''
-      sudo ${overridePackage}
+      ${prefixExec}sudo ${overridePackage}
       YELB="\e[1;33m"
       YELBI="\e[1;3;4;33m"
 
@@ -72,7 +73,7 @@ in makeImpureTest {
   testScript =
     commonStart
   + lib.optionalString isExecutable (commonMid + ''
-    ${overridePackage}
+    ${prefixExec + overridePackage}
   '')
   + commonEnd;
 

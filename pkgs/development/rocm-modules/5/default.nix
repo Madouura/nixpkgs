@@ -32,6 +32,7 @@ let
     (lib.cmakeFeature "CMAKE_INSTALL_BINDIR" "bin")
     (lib.cmakeFeature "CMAKE_INSTALL_LIBDIR" "lib")
     (lib.cmakeFeature "CMAKE_INSTALL_INCLUDEDIR" "include")
+    (lib.cmakeFeature "CMAKE_INSTALL_LIBEXECDIR" "libexec")
   ];
 
   rocmUpdateScript = callPackage ./update.nix { };
@@ -88,10 +89,8 @@ in rec {
   # Unfree
   hsa-amd-aqlprofile-bin = callPackage ./hsa-amd-aqlprofile-bin { };
 
-  # Broken, too many errors
   rdc = callPackage ./rdc {
-    inherit rocmUpdateScript rocm-smi rocm-runtime;
-    # stdenv = llvm.rocmClangStdenv;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
   };
 
   rocm-docs-core = python3Packages.callPackage ./rocm-docs-core { };

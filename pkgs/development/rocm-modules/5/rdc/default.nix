@@ -1,20 +1,23 @@
 { lib
 , stdenv
 , fetchFromGitHub
+, commonNativeBuildInputs
+, commonCMakeFlags
 , rocmUpdateScript
-, cmake
-, rocm-smi
-, rocm-runtime
+, rocmPackages_5
+, protobuf
 , libcap
 , grpc
-, protobuf
 , openssl
+, python3
+, util-linux
+, texlive
 , doxygen
 , graphviz
-, texlive
 , gtest
-, buildDocs ? true
-, buildTests ? false
+, callPackage
+, buildDocs ? false # Needs internet
+, buildTests ? true
 }:
 
 let
@@ -40,15 +43,13 @@ let
     courier;
   };
 in stdenv.mkDerivation (finalAttrs: {
-  pname = "rdc";
+  pname = finalAttrs.passthru.prefixName;
   version = "5.7.1";
 
   outputs = [
     "out"
   ] ++ lib.optionals buildDocs [
     "doc"
-  ] ++ lib.optionals buildTests [
-    "test"
   ];
 
   src = fetchFromGitHub {
@@ -59,59 +60,111 @@ in stdenv.mkDerivation (finalAttrs: {
   };
 
   nativeBuildInputs = [
-    cmake
     protobuf
-  ] ++ lib.optionals buildDocs [
+  ] ++ lib.optionals buildDocs (with rocmPackages_5; [
     doxygen
     graphviz
     latex
-  ];
+    rocm-docs-core
+  ]) ++ commonNativeBuildInputs;
 
-  buildInputs = [
+  buildInputs = (with rocmPackages_5; [
     rocm-smi
     rocm-runtime
     libcap
     grpc
     openssl
-  ] ++ lib.optionals buildTests [
+  ]) ++ lib.optionals buildTests [
     gtest
   ];
 
+  propagatedBuildInputs = [ python3 ];
+
   cmakeFlags = [
-    "-DCMAKE_VERBOSE_MAKEFILE=OFF"
-    "-DRDC_INSTALL_PREFIX=${placeholder "out"}"
-    "-DBUILD_ROCRTEST=ON"
-    "-DRSMI_INC_DIR=${rocm-smi}/include"
-    "-DRSMI_LIB_DIR=${rocm-smi}/lib"
-    "-DGRPC_ROOT=${grpc}"
-    # Manually define CMAKE_INSTALL_<DIR>
-    # See: https://github.com/NixOS/nixpkgs/pull/197838
-    "-DCMAKE_INSTALL_BINDIR=bin"
-    "-DCMAKE_INSTALL_LIBDIR=lib"
-    "-DCMAKE_INSTALL_INCLUDEDIR=include"
-    "-DCMAKE_INSTALL_LIBEXECDIR=libexec"
-    "-DCMAKE_INSTALL_DOCDIR=doc"
-  ] ++ lib.optionals buildTests [
-    "-DBUILD_TESTS=ON"
-  ];
+    # Keep in line with `gRPC` and `protobuf` C++ standard
+    (lib.cmakeFeature "CMAKE_CXX_STANDARD" "17")
+    # `raslib` doesn't actually exist, lol
+    (lib.cmakeBool "BUILD_RASLIB" false)
+    (lib.cmakeBool "BUILD_ROCRTEST" true)
+    # Not sure what `rocmtools` is...
+    (lib.cmakeBool "BUILD_ROCPTEST" false)
+    (lib.cmakeBool "BUILD_TESTS" buildTests)
+    (lib.cmakeFeature "GRPC_ROOT" "${grpc}")
+    (lib.cmakeFeature "ROCM_DIR" (placeholder "out"))
+  ] ++ commonCMakeFlags;
 
   postPatch = ''
+    patchShebangs cmake_modules server src authentication
+
     substituteInPlace CMakeLists.txt \
       --replace "file(STRINGS /etc/os-release LINUX_DISTRO LIMIT_COUNT 1 REGEX \"NAME=\")" "set(LINUX_DISTRO \"NixOS\")"
+
+    substituteInPlace server/rdc.service.in \
+      --replace "/bin/kill" "${util-linux}/bin/kill"
+
+    substituteInPlace rdc_libs/bootstrap/src/RdcBootStrap.cc \
+      --replace "librdc.so" "$out/lib/librdc.so" \
+      --replace "librdc_client.so" "$out/lib/librdc_client.so"
+
+    substituteInPlace rdc_libs/rdc/src/RdcModuleMgrImpl.cc \
+      --replace "librdc_ras.so" "$out/lib/rdc/librdc_ras.so" \
+      --replace "librdc_rocr.so" "$out/lib/rdc/librdc_rocr.so"
+
+    substituteInPlace rdc_libs/rdc_modules/rdc_rocr/base_rocr_utils.cc \
+      --replace "librdc_rocr.so" "$out/lib/rdc/librdc_rocr.so"
+
+    substituteInPlace python_binding/rdc_bootstrap.py \
+      --replace "librdc_bootstrap.so" "$out/lib/librdc_bootstrap.so"
+
+    substituteInPlace tests/rdc_tests/CMakeLists.txt \
+      --replace "''\$ORIGIN/../../../lib" "$out/lib"
+
+    substituteInPlace tests/rdc_tests/{main,test_common}.cc \
+      --replace "/usr/sbin/rdcd" "$out/bin/rdcd"
   '';
 
   postInstall = ''
     find $out/bin -executable -type f -exec \
-      patchelf {} --shrink-rpath --allowed-rpath-prefixes "$NIX_STORE" \;
-  '' + lib.optionalString buildTests ''
-    mkdir -p $test
-    mv $out/bin/rdctst_tests $test/bin
+      patchelf {} --shrink-rpath --allowed-rpath-prefixes $NIX_STORE \;
+  '' + lib.optionalString buildDocs ''
+    cd ../docs
+    python3 -m sphinx -T -E -b html -d _build/doctrees -D language=en . _build/html
   '';
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
+  postFixup = ''
+    chmod +x $out/lib/rdc/librdc_ras.so
+    patchelf $out/lib/rdc/librdc_ras.so --set-rpath $out/lib:$out/lib/rdc
+  '';
+
+  passthru = {
+    prefixName = "rdc";
+
+    tests = {
+      rdctst-embedded = callPackage ./tests/rdctst.nix { testedPackage = finalAttrs.finalPackage; };
+      rdctst-standalone = finalAttrs.passthru.tests.rdctst-embedded;
+    };
+
+    impureTests = {
+      rdctst-embedded = callPackage ../impureTests.nix {
+        testedPackage = finalAttrs.finalPackage;
+        testName = "rdctst-embedded";
+        isExecutable = true;
+        prefixExec = "echo 0 | ";
+      };
+
+      rdctst-standalone = callPackage ../impureTests.nix {
+        testedPackage = finalAttrs.finalPackage;
+        testName = "rdctst-standalone";
+        isExecutable = true;
+        prefixExec = "echo 1 | ";
+      };
+    };
+
+    updateScript = rocmUpdateScript {
+      name = finalAttrs.pname;
+      owner = finalAttrs.src.owner;
+      repo = finalAttrs.src.repo;
+    };
   };
 
   meta = with lib; {
@@ -120,7 +173,6 @@ in stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ mit ];
     maintainers = teams.rocm.members;
     platforms = platforms.linux;
-    # broken = versions.minor finalAttrs.version != versions.minor rocm-smi.version;
-    broken = true; # Too many errors, unsure how to fix
+    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })
