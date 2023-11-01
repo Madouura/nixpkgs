@@ -1,17 +1,17 @@
 { lib
 , stdenv
 , callPackage
-, rocmPackages_5
 , pkg-config
 , cmake
 , ninja
+, rocmPackages ? { }
 }:
 
 {
-  version = rocmPackages_5.llvm.llvm.version;
-  stdenv = rocmPackages_5.llvm.rocmClangStdenv;
+  version = rocmPackages.llvm.llvm.version;
+  stdenv = rocmPackages.llvm.rocmClangStdenv;
 
-  commonNativeBuildInputs = with rocmPackages_5; [
+  commonNativeBuildInputs = with rocmPackages; [
     pkg-config
     cmake
     ninja
@@ -28,20 +28,19 @@
   ];
 
   rocmUpdateScript = callPackage ../common/update.nix {
-    inherit (rocmPackages_5.util) version;
+    inherit (rocmPackages.util) version;
   };
 
   rocmMakeImpureTest = callPackage ../common/make-impure-test.nix {
-    inherit (rocmPackages_5.util) version;
+    inherit (rocmPackages.util) version;
   };
 
   rocmCallPackage = path: attrs: (callPackage ../common/generic.nix {
-    inherit (rocmPackages_5.util) stdenv;
-    rocmPackages = rocmPackages_5;
+    inherit (rocmPackages.util) stdenv;
+    inherit rocmPackages;
   }).overrideAttrs (callPackage path attrs);
 
   rocmStdCallPackage = path: attrs: (callPackage ../common/generic.nix {
-    inherit stdenv;
-    rocmPackages = rocmPackages_5;
+    inherit stdenv rocmPackages;
   }).overrideAttrs (callPackage path attrs);
 }

@@ -1,13 +1,10 @@
 { lib
 , callPackage
 , recurseIntoAttrs
-, symlinkJoin
 , fetchFromGitHub
 , rocmPackages_5
 , python3Packages
 , pkg-config
-, cmake
-, ninja
 , elfutils
 , boost179
 , opencv
@@ -197,8 +194,8 @@
   };
 
   ## Utilities ##
-  util = callPackage ./utilities.nix { };
+  util = callPackage ./utilities.nix { rocmPackages = rocmPackages_5; };
 
   ## Meta ##
-  meta = callPackage ./meta.nix { };
+  meta = callPackage ./meta.nix { rocmPackages = rocmPackages_5; };
 }
