@@ -1,15 +1,12 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmPackages_5
+, rocmPackages
 , cmake
 , git
+, buildTests ? true
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "rocm-cmake";
+(finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -21,14 +18,13 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   nativeBuildInputs = [ cmake ];
-  cmakeFlags = commonCMakeFlags;
-  doCheck = true;
+  cmakeFlags = rocmPackages.util.commonCMakeFlags;
   nativeCheckInputs = [ git ];
 
-  preCheck = ''
+  preCheck = lib.optionalString buildTests ''
     export HOME=$TMPDIR
-    git config --global user.email "none@nixos.org"
-    git config --global user.name "None"
+    git config --global user.email "nixos@nixos.org"
+    git config --global user.name "NixOS"
 
     # list index: 10 out of range (-1, 0)
     rm ../test/pass/version-parent.cmake
@@ -37,18 +33,15 @@ stdenv.mkDerivation (finalAttrs: {
     rm ../test/fail/wrapper.cmake
   '';
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
+  passthru = oldAttrs.passthru // {
+    prefixName = "rocm-cmake";
+    inherit buildTests;
   };
 
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "CMake modules for common build tasks for the ROCm stack";
     homepage = "https://github.com/RadeonOpenCompute/rocm-cmake";
     license = licenses.mit;
-    maintainers = teams.rocm.members;
     platforms = platforms.unix;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })

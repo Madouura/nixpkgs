@@ -1,17 +1,18 @@
-{ libxml2 }:
+{ testedPackage ? { }
+, rocmPackages ? { }
+, libxml2
+}:
 
 prev: {
   pname = "${prev.pname}-tests-kfdtest";
   sourceRoot = "${prev.src.name}/tests/kfdtest";
 
-  nativeBuildInputs = [
-    prev
+  nativeBuildInputs = with rocmPackages; [
+    testedPackage
+    llvm.llvm
     libxml2
   ] ++ prev.nativeBuildInputs;
 
-  meta = with lib; {
-    maintainers = teams.rocm.members;
-    # Needs to be ran in `impureTests`
-    broken = true;
-  };
+  # Unsure what's missing
+  meta.broken = true;
 }

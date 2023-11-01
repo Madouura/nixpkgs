@@ -18,10 +18,4 @@ prev: {
     cp -a kmtreopen $out
     runHook postInstall
   '';
-
-  meta = with lib; {
-    maintainers = teams.rocm.members;
-    # Needs to be ran in `impureTests`
-    broken = true;
-  };
 }

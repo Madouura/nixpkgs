@@ -1,14 +1,9 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmPackages_5
+, rocmPackages
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "rocm-core";
+(finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -18,27 +13,29 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-jFAHLqf/AR27Nbuq8aypWiKqApNcTgG5LWESVjVCKIg=";
   };
 
-  nativeBuildInputs = commonNativeBuildInputs;
+  nativeBuildInputs = rocmPackages.util.commonNativeBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "ROCM_VERSION" finalAttrs.version)
     (lib.cmakeFeature "CPACK_PACKAGING_INSTALL_PREFIX" (placeholder "out"))
-  ] ++ commonCMakeFlags;
+  ] ++ rocmPackages.util.commonCMakeFlags;
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
-    page = "tags?per_page=1";
-    filter = ".[0].name | split(\"-\") | .[1]";
+  passthru = oldAttrs.passthru // {
+    prefixName = "rocm-core";
+
+    updateScript = rocmPackages.util.rocmUpdateScript {
+      name = finalAttrs.passthru.prefixName;
+      owner = finalAttrs.src.owner;
+      repo = finalAttrs.src.repo;
+      page = "tags?per_page=1";
+      filter = ".[0].name | split(\"-\") | .[1]";
+    };
   };
 
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "Utility for getting the ROCm release version";
     homepage = "https://github.com/RadeonOpenCompute/rocm-core";
     license = with licenses; [ mit ];
-    maintainers = teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+    platforms = platforms.unix;
   };
 })

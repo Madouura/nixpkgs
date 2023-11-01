@@ -110,6 +110,11 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ ncsa ];
     maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+
+    broken =
+      # Don't allow major version upgrades: It will need to go into `rocmPackages_6`
+      versions.major finalAttrs.version != rocmPackages_5.util.rocmVersionMajor ||
+      # Don't allow a version difference bigger than a patch
+      versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })
