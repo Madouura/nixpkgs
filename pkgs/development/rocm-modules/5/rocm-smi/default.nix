@@ -3,12 +3,13 @@
 , commonNativeBuildInputs
 , commonCMakeFlags
 , rocmUpdateScript
+, rocmMakeImpureTest
 , symlinkJoin
 }:
 
 let
   static = callPackage ./generic.nix {
-    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript rocmMakeImpureTest;
     buildShared = false;
   };
 

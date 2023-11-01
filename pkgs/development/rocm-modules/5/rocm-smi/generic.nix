@@ -4,6 +4,7 @@
 , commonNativeBuildInputs
 , commonCMakeFlags
 , rocmUpdateScript
+, rocmMakeImpureTest
 , rocmPackages_5
 , python3Packages
 , gtest
@@ -82,13 +83,13 @@ stdenv.mkDerivation (finalAttrs: {
     tests.rocm-smi = finalAttrs.passthru.unparsedTests.rocm-smi;
 
     impureTests = {
-      rocm-smi = callPackage ../impureTests.nix {
+      rocm-smi = rocmMakeImpureTest {
         testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rocm-smi";
         isExecutable = true;
       };
 
-      rsmitst = callPackage ../impureTests.nix {
+      rsmitst = rocmMakeImpureTest {
         testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rsmitst";
         isExecutable = true;

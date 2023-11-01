@@ -36,6 +36,7 @@ let
   ];
 
   rocmUpdateScript = callPackage ./update.nix { };
+  rocmMakeImpureTest = callPackage ./make-impure-test.nix;
 in rec {
   ## RadeonOpenCompute ##
   llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { inherit rocmUpdateScript rocm-device-libs rocm-runtime rocm-thunk clr; });
@@ -77,7 +78,7 @@ in rec {
   };
 
   rocm-smi-variants = recurseIntoAttrs (callPackage ./rocm-smi {
-    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
+    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript rocmMakeImpureTest;
   });
 
   rocm-smi = rocm-smi-variants.shared;
