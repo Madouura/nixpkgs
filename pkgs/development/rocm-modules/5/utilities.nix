@@ -1,7 +1,7 @@
 { lib
 , stdenv
 , callPackage
-, rocmPackages_5;
+, rocmPackages_5
 , pkg-config
 , cmake
 , ninja
