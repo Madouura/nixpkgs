@@ -2,11 +2,11 @@
 , makeImpureTest
 , testedPackage ? { }
 , testName ? ""
-, isNested ? false
 , isExecutable ? false
-, prefixExec ? ""
+, prefixExecutable ? ""
+, executableSuffix ? ""
 # `bypassTestScript` is for when we can't normally run a test to completion.
-# This is because of nix-build internal permission issues, we NEED root.
+# This is because of `nix-build` internal permission issues, we NEED root.
 # So, run it in `prepareRunCommands` and exit before the normal script.
 # If possible, please check if you can't just add a path to `sandBoxPaths` instead.
 , bypassTestScript ? false
@@ -15,70 +15,84 @@
 }:
 
 let
-  trueName = testedPackage.prefixName + lib.optionalString isNested "-variants";
-  pnameSplit = lib.splitString "-" (lib.removePrefix testedPackage.prefixName testedPackage.pname);
-  pnameConv = lib.concatStringsSep "." pnameSplit;
-  convPackage = "rocmPackages_5.${trueName + pnameConv}";
+  testedPackage' =
+    "rocmPackages_5."
+  + testedPackage.prefixName
+  + lib.optionalString (lib.hasAttr "prefixNameSuffix" testedPackage)
+      testedPackage.prefixNameSuffix
+  + "."
+  + lib.replaceStrings [ "-" "." ] [ "" "" ]
+      (lib.removePrefix testedPackage.prefixName (lib.getName testedPackage));
 
-  overridePackage =
-      if testedPackage.tests.${testName}.meta.broken
-      then testedPackage.tests.${testName}.overrideAttrs { meta.broken = false; }
-      else testedPackage.tests.${testName};
+  testedPackageTest = testedPackage.unparsedTests.${testName};
 
   commonStart = ''
-    GREENB="\e[1;32m"
-    BLUEB="\e[1;34m"
-    BLUEBI="\e[1;3;4;34m"
-    END="\e[0m"
+    RT_GREENB="\e[1;32m"
+    RT_BLUEB="\e[1;34m"
+    RT_BLUEBI="\e[1;3;4;34m"
+    RT_END="\e[0m"
+    RT_PREFIX="''${RT_GREENB}${testedPackage'}:''${RT_END}"
 
-    echo -e "''${GREENB}${convPackage}:''${END} ''${BLUEB}Test built successfully at ''${END}''${BLUEBI}${overridePackage}''${END}''${BLUEB}!''${END}"
+    echo -e "$RT_PREFIX ''${RT_BLUEB}Test built successfully at" \
+      "''${RT_END}''${RT_BLUEBI}${testedPackageTest}''${RT_END}''${RT_BLUEB}!''${RT_END}"
   '';
 
-  commonMid = ''
-    echo -e "''${GREENB}${convPackage}:''${END} ''${BLUEB}Running ''${END}''${BLUEBI}${testName}''${END} ''${BLUEB}test...''${END}"
+  commonMiddle = ''
+    echo -e "$RT_PREFIX ''${RT_BLUEB}Running ''${RT_END}''${RT_BLUEBI}${testName}''${RT_END}" \
+      "''${RT_BLUEB}test...''${RT_END}"
   '';
 
   commonEnd = ''
-    echo -e "''${GREENB}${convPackage}:''${END} ''${BLUEB}Test ran successfully!''${END}"
+    echo -e "$RT_PREFIX ''${RT_BLUEB}Test" \
+      "''${RT_BLUEBI}${testName}''${RT_END} ''${RT_BLUEB}ran successfully!''${RT_END}"
 
-    unset GREENB
-    unset BLUEB
-    unset BLUEBI
-    unset END
+    unset RT_PREFIX
+    unset RT_GREENB
+    unset RT_BLUEB
+    unset RT_BLUEBI
+    unset RT_END
   '';
 in makeImpureTest {
   name = testName;
-  testedPackage = convPackage;
+  testedPackage = testedPackage';
   inherit sandboxPaths;
 
   prepareRunCommands =
-    lib.optionalString bypassTestScript (commonStart + commonMid + ''
-      ${prefixExec}sudo ${overridePackage}
-      YELB="\e[1;33m"
-      YELBI="\e[1;3;4;33m"
+    lib.optionalString bypassTestScript (
+      commonStart
+    + commonMiddle
+    + ''
+        ${prefixExecutable}sudo ${testedPackageTest + executableSuffix}
+        RT_YELB="\e[1;33m"
+        RT_YELBI="\e[1;3;4;33m"
 
-      echo -e "''${GREENB}${convPackage}:''${END} ''${YELB}This test normally errors due to ''${YELBI}nix''${END}''${YELB}.
-      ''${END}''${YELBI}nix-build''${END} ''${YELB}needs to run as root internally or work around setuid and password for ''${END}''${YELBI}sudo''${END}''${YELB}.
-      Thus, we run ''${END}''${YELBI}sudo ${overridePackage}''${END}''${YELB}
-      before the test script and exit early.''${END}"
+        echo -e "$RT_PREFIX ''${RT_YELB}This test normally errors due to" \
+          "''${RT_YELBI}nix''${RT_END}''${RT_YELB}.\n''${RT_END}''${RT_YELBI}nix-build''${RT_END}" \
+          "''${RT_YELB}needs to run as root internally or work around" \
+          "setuid and password for ''${RT_END}''${RT_YELBI}sudo''${RT_END}''${RT_YELB}.\nThus," \
+          "we run ''${RT_END}''${RT_YELBI}sudo ${testedPackageTest}''${RT_END}''${RT_YELB}\nbefore" \
+          "the test script and exit early.''${RT_END}"
 
-      unset YELB
-      unset YELBI
-    '')
+        unset RT_YELB
+        unset RT_YELBI
+      ''
+    )
   + prepareRunCommands
-  + lib.optionalString bypassTestScript (commonEnd + ''
-    exit 0
-  '');
+  + lib.optionalString bypassTestScript
+      (commonEnd + "exit 0\n");
 
   testScript =
     commonStart
-  + lib.optionalString isExecutable (commonMid + ''
-    ${prefixExec + overridePackage}
-  '')
+  + lib.optionalString isExecutable
+    "${commonMiddle + prefixExecutable + testedPackageTest + executableSuffix}\n"
   + commonEnd;
 
   meta = with lib; {
     maintainers = teams.rocm.members;
-    broken = (bypassTestScript && !isExecutable);
+
+    broken =
+      testedPackage == { } ||
+      testName == "" ||
+      (bypassTestScript && !isExecutable);
   };
 }

@@ -7,6 +7,7 @@
 , rocmPackages_5
 , python3Packages
 , gtest
+, writeShellScript
 , callPackage
 , buildShared ? false
 }:
@@ -64,31 +65,32 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru = {
     prefixName = "rocm-smi";
+    prefixNameSuffix = "-variants";
 
-    tests = {
+    unparsedTests = {
       # Test requires the shared variant
-      rocm-smi = callPackage ./tests/rocm-smi.nix {
-        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
-      };
+      rocm-smi = writeShellScript
+        "${finalAttrs.pname}-tests-rocm-smi-${finalAttrs.version}"
+        "${rocmPackages_5.rocm-smi-variants.shared}/bin/rocm-smi";
 
       # Test requires the shared variant
-      rsmitst = callPackage ./tests/rsmitst.nix {
-        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
-      };
+      rsmitst = writeShellScript
+        "${finalAttrs.pname}-tests-rocm-rsmitst-${finalAttrs.version}"
+        "${rocmPackages_5.rocm-smi-variants.shared}/share/rocm_smi/rsmitst_tests/rsmitst";
     };
+
+    tests.rocm-smi = finalAttrs.passthru.unparsedTests.rocm-smi;
 
     impureTests = {
       rocm-smi = callPackage ../impureTests.nix {
         testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rocm-smi";
-        isNested = true;
         isExecutable = true;
       };
 
       rsmitst = callPackage ../impureTests.nix {
         testedPackage = rocmPackages_5.rocm-smi-variants.shared;
         testName = "rsmitst";
-        isNested = true;
         isExecutable = true;
         bypassTestScript = true;
       };
