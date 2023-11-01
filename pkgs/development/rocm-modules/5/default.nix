@@ -35,8 +35,8 @@ let
     (lib.cmakeFeature "CMAKE_INSTALL_LIBEXECDIR" "libexec")
   ];
 
-  rocmUpdateScript = callPackage ./update.nix { };
-  rocmMakeImpureTest = callPackage ./make-impure-test.nix;
+  rocmUpdateScript = callPackage ../common/update.nix { rocmVersion = "5"; };
+  rocmMakeImpureTest = callPackage ../common/make-impure-test.nix { rocmVersion = "5"; };
 in rec {
   ## RadeonOpenCompute ##
   llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { inherit rocmUpdateScript rocm-device-libs rocm-runtime rocm-thunk clr; });

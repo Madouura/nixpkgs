@@ -1,5 +1,6 @@
 { lib
 , writeScript
+, rocmVersion ? ""
 }:
 
 { name ? ""
@@ -27,6 +28,6 @@ let
       version="''${version}.0"
     fi
 
-    update-source-version rocmPackages_5.${pname} "$version" --ignore-same-hash
+    update-source-version rocmPackages_${rocmVersion}.${pname} "$version" --ignore-same-hash
   '';
 in [ updateScript ]

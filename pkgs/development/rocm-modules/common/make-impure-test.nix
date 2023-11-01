@@ -1,6 +1,9 @@
 { lib
 , makeImpureTest
-, testedPackage ? { }
+, rocmVersion ? ""
+}:
+
+{ testedPackage ? { }
 , testName ? ""
 , isExecutable ? false
 , prefixExecutable ? ""
@@ -16,7 +19,7 @@
 
 let
   testedPackage' =
-    "rocmPackages_5."
+    "rocmPackages_${rocmVersion}."
   + testedPackage.prefixName
   + lib.optionalString (lib.hasAttr "prefixNameSuffix" testedPackage)
       testedPackage.prefixNameSuffix
