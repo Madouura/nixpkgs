@@ -1,4 +1,6 @@
-{ rocmPackages }:
+{ symlinkJoin
+, rocmPackages_5
+}:
 
 # Emulate common ROCm meta layout
 # These are mainly for users. I strongly suggest NOT using these in nixpkgs derivations
@@ -9,7 +11,7 @@ let
   rocm-llvm-joined = symlinkJoin {
     name = "rocm-llvm-joined-meta";
 
-    paths = with rocmPackages.llvm; [
+    paths = with rocmPackages_5.llvm; [
       clang
       clang.cc
       mlir
@@ -24,7 +26,7 @@ in rec {
   rocm-developer-tools = symlinkJoin {
     name = "rocm-developer-tools-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       hsa-amd-aqlprofile-bin
       rocm-core
       rocr-debug-agent
@@ -39,7 +41,7 @@ in rec {
   rocm-ml-sdk = symlinkJoin {
     name = "rocm-ml-sdk-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-core
       miopen-hip
       rocm-hip-sdk
@@ -50,7 +52,7 @@ in rec {
   rocm-ml-libraries = symlinkJoin {
     name = "rocm-ml-libraries-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-llvm-joined
       rocm-core
       miopen-hip
@@ -61,7 +63,7 @@ in rec {
   rocm-hip-sdk = symlinkJoin {
     name = "rocm-hip-sdk-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocprim
       rocalution
       hipfft
@@ -87,7 +89,7 @@ in rec {
   rocm-hip-libraries = symlinkJoin {
     name = "rocm-hip-libraries-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocblas
       hipfort
       rocm-core
@@ -108,7 +110,7 @@ in rec {
   rocm-openmp-sdk = symlinkJoin {
     name = "rocm-openmp-sdk-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-core
       rocm-llvm-joined
       rocm-language-runtime
@@ -118,7 +120,7 @@ in rec {
   rocm-opencl-sdk = symlinkJoin {
     name = "rocm-opencl-sdk-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-core
       rocm-runtime
       clr
@@ -131,7 +133,7 @@ in rec {
   rocm-opencl-runtime = symlinkJoin {
     name = "rocm-opencl-runtime-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-core
       clr
       clr.icd
@@ -142,7 +144,7 @@ in rec {
   rocm-hip-runtime-devel = symlinkJoin {
     name = "rocm-hip-runtime-devel-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       clr
       rocm-core
       hipify
@@ -157,7 +159,7 @@ in rec {
   rocm-hip-runtime = symlinkJoin {
     name = "rocm-hip-runtime-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-core
       rocminfo
       clr
@@ -168,7 +170,7 @@ in rec {
   rocm-language-runtime = symlinkJoin {
     name = "rocm-language-runtime-meta";
 
-    paths = with rocmPackages; [
+    paths = with rocmPackages_5; [
       rocm-runtime
       rocm-core
       rocm-comgr

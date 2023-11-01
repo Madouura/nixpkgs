@@ -16,7 +16,7 @@
 , rapidjson-unstable
 }:
 
-rec {
+(callPackage ./aliases.nix { }) // rec {
   ## RadeonOpenCompute ##
   llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { });
 
@@ -53,8 +53,6 @@ rec {
   hsa-amd-aqlprofile-bin = callPackage ./hsa-amd-aqlprofile-bin { };
 
   rdc = callPackage ./rdc { };
-
-  rocm-docs-core = python3Packages.callPackage ./rocm-docs-core { };
 
   ## ROCm-Developer-Tools ##
   hip-common = callPackage ./hip-common { };
@@ -199,8 +197,8 @@ rec {
   };
 
   ## Utilities ##
-  util = callPackage ./utilities.nix { rocmPackages = rocmPackages_5; };
+  util = callPackage ./utilities.nix { };
 
   ## Meta ##
-  meta = callPackage ./meta.nix { rocmPackages = rocmPackages_5; };
+  meta = callPackage ./meta.nix { };
 }

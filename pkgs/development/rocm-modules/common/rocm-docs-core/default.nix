@@ -52,7 +52,6 @@ buildPythonPackage rec {
   ];
 
   pythonImportsCheck = [ "rocm_docs" ];
-
   passthru.updateScript = gitUpdater { rev-prefix = "v"; };
 
   meta = with lib; {
