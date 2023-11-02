@@ -5,12 +5,12 @@
 }:
 
 let
-  spirv = (spirv-llvm-translator.override { inherit llvm; });
-in callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+  spirv = (spirv-llvm-translator.override { inherit (rocmPackages.llvm) llvm; });
+  targetName = "libclc";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build
-  targetName = "libclc";
   targetDir = targetName;
   extraBuildInputs = [ spirv ];
 
@@ -20,7 +20,7 @@ in callPackage ../generic.nix rec {
   extraPostPatch = ''
     substituteInPlace CMakeLists.txt \
       --replace "find_program( LLVM_CLANG clang PATHS \''${LLVM_BINDIR} NO_DEFAULT_PATH )" \
-        "find_program( LLVM_CLANG clang PATHS \"${clang}/bin\" NO_DEFAULT_PATH )" \
+        "find_program( LLVM_CLANG clang PATHS \"${rocmPackages.llvm.clang}/bin\" NO_DEFAULT_PATH )" \
       --replace "find_program( LLVM_SPIRV llvm-spirv PATHS \''${LLVM_BINDIR} NO_DEFAULT_PATH )" \
         "find_program( LLVM_SPIRV llvm-spirv PATHS \"${spirv}/bin\" NO_DEFAULT_PATH )" \
       --replace "  spirv-mesa3d-" "" \

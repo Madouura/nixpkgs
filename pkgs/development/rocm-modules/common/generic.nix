@@ -1,5 +1,8 @@
 { lib
 , stdenv
+, pkg-config
+, cmake
+, ninja
 , rocmPackages ? { }
 , buildShared ? null
 , buildDocs ? false
