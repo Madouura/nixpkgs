@@ -1,9 +1,7 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
-, llvm
-, clang
+{ callPackage
 , spirv-llvm-translator
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
 let

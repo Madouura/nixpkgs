@@ -1,15 +1,16 @@
 { lib
 , callPackage
-, rocmUpdateScript
-, llvm
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit rocmUpdateScript;
+let
+  targetName = "runtimes";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false;
   buildMan = false;
   buildTests = false;
-  targetName = "runtimes";
   targetDir = targetName;
 
   targetRuntimes = [
@@ -19,7 +20,7 @@ callPackage ../generic.nix rec {
     "compiler-rt"
   ];
 
-  extraBuildInputs = [ llvm ];
+  extraBuildInputs = with rocmPackages.llvm; [ llvm ];
 
   extraCMakeFlags = [
     "-DLIBCXX_INCLUDE_BENCHMARKS=OFF"

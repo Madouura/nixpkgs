@@ -1,13 +1,11 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
-, llvm
-, clang-unwrapped
+{ callPackage
 , gtest
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+callPackage ../generic.nix {
+  inherit stdenv rocmPackages;
   buildTests = false; # `invalid operands to binary expression ('std::basic_stringstream<char>' and 'const llvm::StringRef')`
   targetName = "clang-tools-extra";
 
@@ -26,7 +24,7 @@ callPackage ../generic.nix rec {
     "-DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=ON"
   ];
 
-  extraPostInstall = ''
+  extraPostInstall = with rocmPackages.llvm; ''
     # Remove LLVM and Clang
     for path in `find ${llvm} ${clang-unwrapped}`; do
       if [ $path != ${llvm} ] && [ $path != ${clang-unwrapped} ]; then

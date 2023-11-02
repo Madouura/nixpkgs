@@ -1,6 +1,6 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
+{ callPackage
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
 callPackage ../generic.nix rec {

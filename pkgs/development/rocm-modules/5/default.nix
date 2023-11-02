@@ -15,7 +15,7 @@
 
 (callPackage ./aliases.nix { }) // rec {
   ## RadeonOpenCompute ##
-  llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { });
+  llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { rocmPackages = rocmPackages_5; });
 
   rocm-cmake = util.rocmStdCallPackage ./rocm-cmake { };
 

@@ -1,7 +1,5 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, rocmUpdateScript
 , pkg-config
 , cmake
 , ninja
@@ -17,6 +15,8 @@
 , zlib
 , ncurses
 , python3Packages
+, stdenv ? { }
+, rocmPackages ? { }
 , buildDocs ? true
 , buildMan ? true
 , buildTests ? true
@@ -38,9 +38,9 @@
   )
 )]
 , extraPostInstall ? ""
+, isLibCXX ? false
 , hardeningDisable ? [ ]
 , requiredSystemFeatures ? [ ]
-, rocm-libcxxabi ? { }
 , extraLicenses ? [ ]
 , isBroken ? false
 }:
@@ -145,12 +145,12 @@ in stdenv.mkDerivation (finalAttrs: {
   '' + extraPostInstall;
 
   passthru = {
-    isLLVM = targetDir == "llvm" || rocm-libcxxabi != { };
+    isLLVM = targetDir == "llvm" || isLibCXX;
     isClang = targetDir == "clang" || builtins.elem "clang" targetProjects;
-    cxxabi = lib.optionalAttrs (rocm-libcxxabi != { }) rocm-libcxxabi;
-    libName = lib.optionalString (rocm-libcxxabi != { }) "c++abi";
+    cxxabi = lib.optionalAttrs isLibCXX rocmPackages.llvm.libcxxabi;
+    libName = lib.optionalString isLibCXX "c++abi";
 
-    updateScript = rocmUpdateScript {
+    updateScript = rocmPackages.util.rocmUpdateScript {
       name = finalAttrs.pname;
       owner = finalAttrs.src.owner;
       repo = finalAttrs.src.repo;
@@ -165,6 +165,10 @@ in stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ ncsa ] ++ extraLicenses;
     maintainers = with maintainers; [ acowley lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-    broken = isBroken;
+
+    broken =
+      stdenv == { } ||
+      rocmPackages == { } ||
+      isBroken;
   };
 })

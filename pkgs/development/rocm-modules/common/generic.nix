@@ -1,39 +1,54 @@
 { lib
-, stdenv ? { }
+, stdenv
 , rocmPackages ? { }
 , buildShared ? null
 , buildDocs ? false
 , buildTests ? false
+, buildBenchmarks ? false
 , buildExamples ? false
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname =
     finalAttrs.passthru.prefixName
-  + lib.optionalString (finalAttrs.passthru.buildShared != null) (
-      if finalAttrs.passthru.buildShared
+  + lib.optionalString (lib.isBool buildShared) (
+      if buildShared
       then "-shared"
       else "-static"
     );
 
   outputs = [
     "out"
-  ] ++ lib.optionals finalAttrs.passthru.buildDocs [
+  ] ++ lib.optionals buildDocs [
     "doc"
-  ] ++ lib.optionals finalAttrs.passthru.buildExamples [
+  ] ++ lib.optionals buildBenchmarks [
+    "benchmark"
+  ] ++ lib.optionals buildExamples [
     "example"
   ];
 
-  doCheck = finalAttrs.passthru.buildTests;
+  nativeBuildInputs = [
+    pkg-config
+    cmake
+    ninja
+    rocmPackages.rocm-cmake
+  ];
 
-  passthru = {
-    inherit buildShared buildDocs buildTests buildExamples;
+  # Manually define CMAKE_INSTALL_<DIR>
+  # See: https://github.com/RadeonOpenCompute/rocm-cmake/issues/121
+  cmakeFlags = [
+    (lib.cmakeFeature "CMAKE_INSTALL_BINDIR" "bin")
+    (lib.cmakeFeature "CMAKE_INSTALL_LIBDIR" "lib")
+    (lib.cmakeFeature "CMAKE_INSTALL_INCLUDEDIR" "include")
+    (lib.cmakeFeature "CMAKE_INSTALL_LIBEXECDIR" "libexec")
+  ];
 
-    updateScript = rocmPackages.util.rocmUpdateScript {
-      name = finalAttrs.passthru.prefixName;
-      owner = finalAttrs.src.owner;
-      repo = finalAttrs.src.repo;
-    };
+  doCheck = buildTests;
+
+  passthru.updateScript = rocmPackages.util.rocmUpdateScript {
+    name = finalAttrs.passthru.prefixName;
+    owner = finalAttrs.src.owner;
+    repo = finalAttrs.src.repo;
   };
 
   meta = with lib; {
@@ -42,10 +57,16 @@ stdenv.mkDerivation (finalAttrs: {
     # Some ROCm packages can override this
     platforms = [ "x86_64-linux" ];
 
-    broken =
+    broken = with versions;
       # Don't allow major version upgrades; They need to be put into `rocmPackages_N`
-      versions.major finalAttrs.version != versions.major rocmPackages.util.version ||
+      major finalAttrs.version != major rocmPackages.util.version ||
       # Don't allow a version difference bigger than a patch
-      versions.minor finalAttrs.version != versions.minor rocmPackages.util.version;
+      minor finalAttrs.version != minor rocmPackages.util.version ||
+      # Don't allow passthru to not have the `prefixName` attribute
+      !(hasAttr "prefixName" finalAttrs.passthru) ||
+      # Don't allow the derivation to not have the `src` attribute and it's constituents
+      !(hasAttr "src" finalAttrs) ||
+      !(hasAttr "owner" finalAttrs.src) ||
+      !(hasAttr "repo" finalAttrs.src);
   };
 })

@@ -1,13 +1,12 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
-, clang
+{ callPackage
 , xz
 , swig
 , lua5_3
 , graphviz
 , gtest
 , python3Packages
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
 callPackage ../generic.nix rec {

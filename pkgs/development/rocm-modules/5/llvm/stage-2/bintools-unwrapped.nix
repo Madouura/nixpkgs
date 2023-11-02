@@ -1,9 +1,10 @@
 { runCommand
-, llvm
-, lld
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-runCommand "rocm-llvm-binutils-${llvm.version}" { preferLocalBuild = true; } ''
+runCommand "rocm-llvm-binutils-${rocmPackages.llvm.llvm.version}"
+  { preferLocalBuild = true; } (with rocmPackages.llvm; ''
   mkdir -p $out/bin
 
   for prog in ${lld}/bin/*; do
@@ -25,4 +26,4 @@ runCommand "rocm-llvm-binutils-${llvm.version}" { preferLocalBuild = true; } ''
   ln -s ${llvm}/bin/llvm-size $out/bin/size
   ln -s ${llvm}/bin/llvm-strip $out/bin/strip
   ln -s ${lld}/bin/lld $out/bin/ld
-''
+'')

@@ -1,13 +1,14 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
+{ callPackage
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
+  targetName = "libcxxabi";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build
-  targetName = "libcxxabi";
   targetDir = "runtimes";
 
   targetRuntimes = [

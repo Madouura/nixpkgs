@@ -1,17 +1,8 @@
 { lib
-, stdenv
 , wrapCCWith
 , symlinkJoin
-, llvm
-, clang-unwrapped
-, lld
-, bintools
-, bintoolsWithLibC
-, libc
-, libunwind
-, libcxxabi
-, libcxx
-, compiler-rt
+, stdenv ? { }
+, rocmPackages ? { }
 , useLLD ? true
 , useLibC ? false
 , useLibCXX ? false
@@ -26,7 +17,7 @@ let
     rocm-llvm-clang-joined = symlinkJoin {
       name = "rocm-llvm-clang-joined";
 
-      paths = [
+      paths = with rocmPackages.llvm; [
         llvm
         clang-unwrapped
       ] ++ lib.optionals useLLD [
@@ -42,7 +33,7 @@ let
         compiler-rt
       ];
 
-      postBuild = ''
+      postBuild = with rocmPackages.llvm; ''
         clang_version=$(${clang-unwrapped}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+")
         clang_dir="$out/lib/clang/$clang_version"
         ln -sf $out/include/* $clang_dir/include
@@ -53,7 +44,7 @@ let
     };
   in stdenv.mkDerivation (finalAttrs: {
     pname = "rocm-llvm-clang";
-    inherit (clang-unwrapped) version;
+    inherit (rocmPackages.llvm.llvm) version;
     dontPatch = true;
     dontConfigure = true;
     dontBuild = true;
@@ -76,20 +67,20 @@ in wrapCCWith {
 
   bintools =
     if useLibC
-    then bintoolsWithLibC
-    else bintools;
+    then rocmPackages.llvm.bintoolsWithLibC
+    else rocmPackages.llvm.bintools;
 
   libc =
     if useLibC
-    then bintoolsWithLibC.libc
-    else bintools.libc;
+    then rocmPackages.llvm.bintoolsWithLibC.libc
+    else rocmPackages.llvm.bintools.libc;
 
   libcxx =
     if useLibCXX
-    then libcxx
+    then rocmPackages.llvm.libcxx
     else null;
 
-  extraPackages = [
+  extraPackages = with rocmPackages.llvm; [
     llvm
   ] ++ lib.optionals useLLD [
     lld

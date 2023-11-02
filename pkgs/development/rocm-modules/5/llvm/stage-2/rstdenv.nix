@@ -1,21 +1,20 @@
-{ stdenv
-, overrideCC
+{ overrideCC
 , wrapCCWith
-, llvm
-, clang-unwrapped
-, lld
-, runtimes
-, bintools
+, stdenv ? { }
+, rocmPackages ? { }
+, runtimes ? { }
 }:
 
-overrideCC stdenv (wrapCCWith rec {
-  inherit bintools;
-  libcxx = runtimes;
-  cc = clang-unwrapped;
+let
+  cc = rocmPackages.llvm.clang-unwrapped;
+in overrideCC stdenv (wrapCCWith {
+  inherit cc;
+  inherit (rocmPackages.llvm) bintools;
 
-  extraPackages = [
+  extraPackages = with rocmPackages.llvm; [
     llvm
     lld
+    runtimes
   ];
 
   nixSupport.cc-cflags = [

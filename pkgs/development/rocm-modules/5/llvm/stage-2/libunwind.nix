@@ -1,12 +1,13 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
+{ callPackage
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
-  buildMan = false; # No man pages to build
+let
   targetName = "libunwind";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
+  buildMan = false; # No man pages to build
   targetDir = "runtimes";
   targetRuntimes = [ targetName ];
 

@@ -1,16 +1,16 @@
 { lib
-, stdenv
 , callPackage
-, rocmUpdateScript
-, llvm
 , glibc
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
+  targetName = "compiler-rt";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build
-  targetName = "compiler-rt";
   targetDir = "runtimes";
 
   targetRuntimes = [
@@ -56,7 +56,7 @@ callPackage ../generic.nix rec {
 
     # Could not launch llvm-config in /build/source/runtimes/build/bin
     mkdir -p build/bin
-    ln -s ${llvm}/bin/llvm-config build/bin
+    ln -s ${rocmPackages.llvm.llvm}/bin/llvm-config build/bin
   '';
 
   extraLicenses = [ lib.licenses.mit ];

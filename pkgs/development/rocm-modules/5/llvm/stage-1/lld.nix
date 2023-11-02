@@ -1,13 +1,14 @@
 { callPackage
-, rocmUpdateScript
-, llvm
+, stdenv ? { }
+, rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit rocmUpdateScript;
-  buildMan = false; # No man pages to build
+let
   targetName = "lld";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
+  buildMan = false; # No man pages to build
   targetDir = targetName;
-  extraBuildInputs = [ llvm ];
+  extraBuildInputs = with rocmPackages.llvm; [ llvm ];
   checkTargets = [ "check-${targetName}" ];
 }
