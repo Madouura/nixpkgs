@@ -1,22 +1,14 @@
-{ stdenv
-, callPackage
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, symlinkJoin
+{ symlinkJoin
+, rocmCallPackage ? { }
 }:
 
 let
-  static = callPackage ./generic.nix {
-    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
-    buildShared = false;
+  packages = {
+    static = rocmCallPackage ./generic.nix { buildShared = false; };
+    shared = rocmCallPackage ./generic.nix { buildShared = true; };
   };
-
-  shared = static.override { buildShared = true; };
-in {
-  inherit static shared;
-
-  full = symlinkJoin {
+in packages // {
+  full = with packages; symlinkJoin {
     name = "${static.prefixName}-full-${static.version}";
     paths = [ static shared ];
   };

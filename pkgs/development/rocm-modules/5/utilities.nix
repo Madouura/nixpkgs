@@ -1,10 +1,12 @@
-{ callPackage
+{ stdenv
+, callPackage
+, recurseIntoAttrs
 , rocmPackages ? { }
 }:
 
 {
-  version = rocmPackages.llvm.llvm.version;
   stdenv = rocmPackages.llvm.rocmClangStdenv;
+  version = rocmPackages.llvm.llvm.version;
 
   rocmUpdateScript = callPackage ../common/update.nix {
     inherit (rocmPackages.util) version;
@@ -14,12 +16,39 @@
     inherit (rocmPackages.util) version;
   };
 
-  rocmCallPackage = path: attrs: (callPackage ../common/generic.nix {
-    inherit (rocmPackages.util) stdenv;
-    inherit rocmPackages;
-  } // attrs).overrideAttrs (callPackage path attrs);
+  rocmClangMkDerivation = args: attrs: (
+    callPackage ../common/generic.nix {
+      inherit (rocmPackages.util) stdenv;
+      inherit rocmPackages;
+    } args
+  ).overrideAttrs attrs;
 
-  rocmStdCallPackage = path: attrs: (callPackage ../common/generic.nix {
-    inherit rocmPackages;
-  } // attrs).overrideAttrs (callPackage path attrs);
+  rocmGCCMkDerivation = args: attrs: (
+    callPackage ../common/generic.nix {
+      inherit stdenv rocmPackages;
+    } args
+  ).overrideAttrs attrs;
+
+  rocmClangCallPackage = path: args:
+    callPackage path {
+      inherit (rocmPackages.util) stdenv;
+      inherit rocmPackages;
+      rocmMkDerivation = rocmPackages.util.rocmClangMkDerivation;
+    } args;
+
+  rocmGCCCallPackage = path: args:
+    callPackage path {
+      inherit stdenv rocmPackages;
+      rocmMkDerivation = rocmPackages.util.rocmGCCMkDerivation;
+    } args;
+
+  recursiveClangCallPackage = path:
+    recurseIntoAttrs (callPackage path {
+      rocmCallPackage = rocmPackages.util.rocmClangCallPackage;
+    });
+
+  recursiveGCCCallPackage = path:
+    recurseIntoAttrs (callPackage path {
+      rocmCallPackage = rocmPackages.util.rocmGCCCallPackage;
+    });
 }

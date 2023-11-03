@@ -1,38 +1,36 @@
-{ stdenv
-, callPackage
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, symlinkJoin
+{ symlinkJoin
+, rocmCallPackage ? { }
 }:
 
 let
-  generic = callPackage ./generic.nix {
-    inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
-  };
-
   packages = {
-    static = rec {
-      default = generic.override {
+    static = {
+      default = rocmCallPackage ./generic.nix {
         buildShared = false;
         imageSupport = false;
       };
 
-      image = default.override { imageSupport = true; };
+      image = rocmCallPackage ./generic.nix {
+        buildShared = false;
+        imageSupport = true;
+      };
     };
 
-    shared = rec {
-      default = generic.override {
+    shared = {
+      default = rocmCallPackage ./generic.nix {
         buildShared = true;
         imageSupport = false;
       };
 
-      image = default.override { imageSupport = true; };
+      image = rocmCallPackage ./generic.nix {
+        buildShared = true;
+        imageSupport = true;
+      };
     };
   };
 in packages // {
-  full = symlinkJoin {
-    name = "${generic.prefixName}-full-${generic.version}";
-    paths = with packages; [ static.image shared.image ];
+  full = with packages; symlinkJoin {
+    name = "${static.default.prefixName}-full-${static.default.version}";
+    paths = [ static.image shared.image ];
   };
 }

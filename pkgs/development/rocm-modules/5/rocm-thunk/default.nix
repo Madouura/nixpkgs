@@ -1,19 +1,14 @@
-{ rocmStdCallPackage
-, symlinkJoin
+{ symlinkJoin
+, rocmCallPackage ? { }
 }:
 
 let
-  static = rocmStdCallPackage ./generic.nix {
-    buildShared = false;
+  packages = {
+    static = rocmCallPackage ./generic.nix { buildShared = false; };
+    shared = rocmCallPackage ./generic.nix { buildShared = true; };
   };
-
-  shared = rocmStdCallPackage ./generic.nix {
-    buildShared = true;
-  };
-in {
-  inherit static shared;
-
-  full = symlinkJoin {
+in packages // {
+  full = with packages; symlinkJoin {
     name = "${static.prefixName}-full-${static.version}";
     paths = [ static shared ];
   };

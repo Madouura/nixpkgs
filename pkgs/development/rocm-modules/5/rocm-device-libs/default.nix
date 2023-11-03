@@ -1,11 +1,12 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmPackages_5
 , libxml2
+, stdenv ? { }
+, rocmMkDerivation ? { }
+, ...
+}:
+
+{ buildTests ? true
 , llvmTargetsToBuild ? [ "NATIVE" ] # "NATIVE" resolves into x86 or aarch64 depending on stdenv
 }:
 
@@ -17,8 +18,9 @@ let
 
   inferNativeTarget = t: if t == "NATIVE" then llvmNativeTarget else t;
   llvmTargetsToBuild' = [ "AMDGPU" ] ++ builtins.map inferNativeTarget llvmTargetsToBuild;
-in stdenv.mkDerivation (finalAttrs: {
-  pname = "rocm-device-libs";
+in rocmMkDerivation {
+  inherit buildTests;
+} (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -33,27 +35,18 @@ in stdenv.mkDerivation (finalAttrs: {
     ./0001-skip-gfx700-atan-atan2pi-tests.patch
   ];
 
-  nativeBuildInputs = commonNativeBuildInputs;
   buildInputs = [ libxml2 ];
 
-  cmakeFlags = [
+  cmakeFlags = oldAttrs.cmakeFlags ++ [
     (lib.cmakeFeature "LLVM_TARGETS_TO_BUILD" (lib.concatStringsSep ";" llvmTargetsToBuild'))
-  ] ++ commonCMakeFlags;
+  ];
 
-  doCheck = true;
+  passthru.prefixName = "rocm-device-libs";
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
-  };
-
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "Set of AMD-specific device-side language runtime libraries";
     homepage = "https://github.com/RadeonOpenCompute/ROCm-Device-Libs";
     license = licenses.ncsa;
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+    maintainers = with maintainers; oldAttrs.meta.maintainers ++ [ lovesegfault ];
   };
 })

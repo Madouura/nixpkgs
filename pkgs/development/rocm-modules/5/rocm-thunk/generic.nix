@@ -1,14 +1,18 @@
 { lib
 , fetchFromGitHub
-, rocmPackages
 , libdrm
 , numactl
 , callPackage
-, buildShared ? false
-, buildTests ? false
+, rocmPackages ? { }
+, rocmMkDerivation ? { }
+, ...
 }:
 
-(finalAttrs: oldAttrs: {
+{ buildShared ? false }:
+
+rocmMkDerivation {
+  inherit buildShared;
+} (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -18,21 +22,18 @@
     hash = "sha256-jAMBks2/JaXiA45B3qvLHY8fPeFcr1GHT5Jieuduqhw=";
   };
 
-  nativeBuildInputs = rocmPackages.util.commonNativeBuildInputs;
-
   buildInputs = [
     libdrm
     numactl
   ];
 
-  cmakeFlags = [
+  cmakeFlags = oldAttrs.cmakeFlags ++ [
     (lib.cmakeBool "BUILD_SHARED_LIBS" buildShared)
-  ] ++ rocmPackages.util.commonCMakeFlags;
+  ];
 
   passthru = oldAttrs.passthru // {
     prefixName = "rocm-thunk";
     prefixNameSuffix = "-variants";
-    inherit buildShared buildTests;
 
     unparsedTests = {
       kfdtest = finalAttrs.finalPackage.overrideAttrs (callPackage ./tests/kfdtest.nix {
@@ -58,6 +59,6 @@
     description = "Radeon open compute thunk interface";
     homepage = "https://github.com/RadeonOpenCompute/ROCT-Thunk-Interface";
     license = with licenses; [ bsd2 mit ];
-    maintainers = with maintainers; [ lovesegfault ] ++ oldAttrs.meta.maintainers;
+    maintainers = with maintainers; oldAttrs.meta.maintainers ++ [ lovesegfault ];
   };
 })

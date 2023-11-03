@@ -1,9 +1,14 @@
 { lib
 , fetchFromGitHub
-, rocmPackages
+, cmake
+, rocmPackages ? { }
+, rocmMkDerivation ? { }
+, ...
 }:
 
-(finalAttrs: oldAttrs: {
+{ }:
+
+rocmMkDerivation { } (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -13,12 +18,20 @@
     hash = "sha256-jFAHLqf/AR27Nbuq8aypWiKqApNcTgG5LWESVjVCKIg=";
   };
 
-  nativeBuildInputs = rocmPackages.util.commonNativeBuildInputs;
+  nativeBuildInputs = [ cmake ];
 
-  cmakeFlags = [
+  cmakeFlags = oldAttrs.cmakeFlags ++ [
     (lib.cmakeFeature "ROCM_VERSION" finalAttrs.version)
     (lib.cmakeFeature "CPACK_PACKAGING_INSTALL_PREFIX" (placeholder "out"))
-  ] ++ rocmPackages.util.commonCMakeFlags;
+  ];
+
+  postPatch = ''
+    substituteInPlace rocmmod.in \
+      --replace "@CPACK_PACKAGING_INSTALL_PREFIX@/llvm/bin" \
+        "${rocmPackages.llvm.clang.cc}/bin" \
+      --replace "@CPACK_PACKAGING_INSTALL_PREFIX@/llvm/share/man1" \
+        "${lib.getMan rocmPackages.llvm.llvm}/share/man/man1:${lib.getMan rocmPackages.llvm.clang-unwrapped}/share/man/man1"
+  '';
 
   passthru = oldAttrs.passthru // {
     prefixName = "rocm-core";

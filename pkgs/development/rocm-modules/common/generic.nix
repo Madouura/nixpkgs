@@ -1,10 +1,12 @@
 { lib
-, stdenv
 , pkg-config
 , cmake
 , ninja
+, stdenv ? { }
 , rocmPackages ? { }
-, buildShared ? null
+}:
+
+{ buildShared ? null
 , buildDocs ? false
 , buildTests ? false
 , buildBenchmarks ? false
@@ -44,6 +46,9 @@ stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeFeature "CMAKE_INSTALL_LIBDIR" "lib")
     (lib.cmakeFeature "CMAKE_INSTALL_INCLUDEDIR" "include")
     (lib.cmakeFeature "CMAKE_INSTALL_LIBEXECDIR" "libexec")
+    (lib.cmakeFeature "CMAKE_INSTALL_SHAREDIR" "share")
+    (lib.cmakeFeature "CMAKE_INSTALL_DOCDIR" "share/doc")
+    (lib.cmakeFeature "CMAKE_INSTALL_MANDIR" "share/man")
   ];
 
   doCheck = buildTests;

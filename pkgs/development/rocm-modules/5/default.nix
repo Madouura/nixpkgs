@@ -1,10 +1,8 @@
-{ lib
-, callPackage
+{ callPackage
 , recurseIntoAttrs
 , fetchFromGitHub
 , rocmPackages_5
 , python3Packages
-, pkg-config
 , elfutils
 , boost179
 , opencv
@@ -13,28 +11,33 @@
 , rapidjson-unstable
 }:
 
-(callPackage ./aliases.nix { }) // rec {
+let
+  inherit (rocmPackages_5.util)
+    rocmClangCallPackage
+    rocmGCCCallPackage
+    recursiveClangCallPackage
+    recursiveGCCCallPackage;
+in rec {
   ## RadeonOpenCompute ##
   llvm = recurseIntoAttrs (callPackage ./llvm/default.nix { rocmPackages = rocmPackages_5; });
 
-  rocm-cmake = util.rocmStdCallPackage ./rocm-cmake { };
+  rocm-cmake = rocmClangCallPackage ./rocm-cmake { };
 
-  rocm-core = util.rocmStdCallPackage ./rocm-core { };
+  rocm-core = rocmClangCallPackage ./rocm-core { };
 
-  rocm-thunk-variants = recurseIntoAttrs
-    (callPackage ./rocm-thunk { inherit (util) rocmStdCallPackage; });
+  rocm-thunk-variants = recursiveClangCallPackage ./rocm-thunk;
 
   rocm-thunk = rocm-thunk-variants.static;
 
   # Eventually will be in the LLVM repo
-  rocm-device-libs = callPackage ./rocm-device-libs { };
+  rocm-device-libs = rocmClangCallPackage ./rocm-device-libs { };
 
   # Eventually will be in the LLVM repo
-  rocm-comgr-variants = callPackage ./rocm-comgr { };
+  rocm-comgr-variants = recursiveClangCallPackage ./rocm-comgr;
 
   rocm-comgr = rocm-comgr-variants.shared;
 
-  rocm-runtime-variants = callPackage ./rocm-runtime { };
+  rocm-runtime-variants = recursiveClangCallPackage ./rocm-runtime;
 
   rocm-runtime = rocm-runtime-variants.shared.image;
 
@@ -198,4 +201,4 @@
 
   ## Meta ##
   meta = callPackage ./meta.nix { rocmPackages = rocmPackages_5; };
-}
+} // (callPackage ./aliases.nix { })

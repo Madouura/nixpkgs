@@ -1,12 +1,16 @@
 { lib
 , fetchFromGitHub
-, rocmPackages
 , cmake
 , git
-, buildTests ? true
+, rocmMkDerivation ? { }
+, ...
 }:
 
-(finalAttrs: oldAttrs: {
+{ buildTests ? true }:
+
+rocmMkDerivation {
+  inherit buildTests;
+} (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -18,13 +22,12 @@
   };
 
   nativeBuildInputs = [ cmake ];
-  cmakeFlags = rocmPackages.util.commonCMakeFlags;
   nativeCheckInputs = [ git ];
 
   preCheck = lib.optionalString buildTests ''
     export HOME=$TMPDIR
-    git config --global user.email "nixos@nixos.org"
-    git config --global user.name "NixOS"
+    git config --global user.email "none@none.org"
+    git config --global user.name "None"
 
     # list index: 10 out of range (-1, 0)
     rm ../test/pass/version-parent.cmake
@@ -33,10 +36,7 @@
     rm ../test/fail/wrapper.cmake
   '';
 
-  passthru = oldAttrs.passthru // {
-    prefixName = "rocm-cmake";
-    inherit buildTests;
-  };
+  passthru.prefixName = "rocm-cmake";
 
   meta = with lib; oldAttrs.meta // {
     description = "CMake modules for common build tasks for the ROCm stack";
