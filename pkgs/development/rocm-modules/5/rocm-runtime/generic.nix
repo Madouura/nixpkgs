@@ -20,7 +20,11 @@ rocmMkDerivation {
 } (finalAttrs: oldAttrs: {
   pname =
     oldAttrs.pname
-  + lib.optionalString imageSupport "-image";
+  + (
+    if imageSupport
+    then "-image"
+    else "-default"
+  );
 
   version = "5.7.1";
 
@@ -60,7 +64,10 @@ rocmMkDerivation {
       --replace "-mcode-object-version=4" "-mcode-object-version=5"
   '';
 
-  passthru.prefixName = "rocm-runtime";
+  passthru = oldAttrs.passthru // {
+    prefixName = "rocm-runtime";
+    prefixNameSuffix = "-variants";
+  };
 
   meta = with lib; oldAttrs.meta // {
     description = "Platform runtime for ROCm";

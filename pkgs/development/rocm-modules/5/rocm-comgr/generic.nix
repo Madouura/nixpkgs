@@ -43,7 +43,10 @@ in rocmMkDerivation {
     (lib.cmakeBool "COMGR_BUILD_SHARED_LIBS" buildShared)
   ];
 
-  passthru.prefixName = "rocm-comgr";
+  passthru = oldAttrs.passthru // {
+    prefixName = "rocm-comgr";
+    prefixNameSuffix = "-variants";
+  };
 
   meta = with lib; oldAttrs.meta // {
     description = "APIs for compiling and inspecting AMDGPU code objects";

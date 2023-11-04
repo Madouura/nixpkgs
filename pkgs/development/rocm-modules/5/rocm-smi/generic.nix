@@ -1,23 +1,27 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmMakeImpureTest
-, rocmPackages_5
 , python3Packages
 , gtest
-, writeShellScript
 , callPackage
-, buildShared ? false
+, rocmPackages ? { }
+, rocmMkDerivation ? { }
+, ...
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = finalAttrs.passthru.prefixName + (
-    if buildShared
-    then "-shared"
-    else "-static"
+{
+  buildShared ? false
+, buildTests ? false
+}:
+
+rocmMkDerivation {
+  inherit buildShared buildTests;
+} (finalAttrs: oldAttrs: {
+  pname =
+    oldAttrs.pname
+  + (
+    if buildTests
+    then "-test"
+    else "-default"
   );
 
   version = "5.7.1";
@@ -31,16 +35,18 @@ stdenv.mkDerivation (finalAttrs: {
 
   patches = [
     ./0000-fix-cmake-bad-paths.patch
+  ] ++ lib.optionals buildTests [
     ./0001-fix-tests.patch
   ];
 
-  nativeBuildInputs = [ python3Packages.wrapPython ] ++ commonNativeBuildInputs;
-  buildInputs = [ gtest ];
+  nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ python3Packages.wrapPython ];
+  buildInputs = lib.optionals buildTests [ gtest ];
+  propagatedBuildInputs = [ python3Packages.python ];
 
-  cmakeFlags = [
+  cmakeFlags = oldAttrs.cmakeFlags ++ [
     (lib.cmakeBool "BUILD_SHARED_LIBS" buildShared)
-    (lib.cmakeBool "BUILD_TESTS" true)
-  ] ++ commonCMakeFlags;
+    (lib.cmakeBool "BUILD_TESTS" buildTests)
+  ];
 
   postPatch = ''
     substituteInPlace CMakeLists.txt \
@@ -52,11 +58,6 @@ stdenv.mkDerivation (finalAttrs: {
     substituteInPlace cmake_modules/utils.cmake \
       --replace "(get_commits)" "(FALSE)" \
       --replace "message(\"WARNING: Didn't find version_util.sh\")" ""
-
-    # Not an error, but our LLD doesn't seem to recognize it
-    # `ld.lld: warning: unknown -z value: noexecheap`
-    substituteInPlace CMakeLists.txt cmake_modules/help_package.cmake \
-      --replace "-znoexecheap" ""
   '';
 
   postInstall = ''
@@ -64,57 +65,46 @@ stdenv.mkDerivation (finalAttrs: {
     mv $out/libexec/rocm_smi/.rsmiBindings.py-wrapped $out/libexec/rocm_smi/rsmiBindings.py
   '';
 
-  passthru = {
+  passthru = oldAttrs.passthru // {
     prefixName = "rocm-smi";
     prefixNameSuffix = "-variants";
 
     unparsedTests = {
       # Test requires the shared variant
-      rocm-smi = writeShellScript
-        "${finalAttrs.pname}-tests-rocm-smi-${finalAttrs.version}"
-        "${rocmPackages_5.rocm-smi-variants.shared}/bin/rocm-smi";
-
-      # Test requires the shared variant
-      rsmitst = writeShellScript
-        "${finalAttrs.pname}-tests-rocm-rsmitst-${finalAttrs.version}"
-        "${rocmPackages_5.rocm-smi-variants.shared}/share/rocm_smi/rsmitst_tests/rsmitst";
+      rocm-smi = "${rocmPackages.rocm-smi-variants.shared.default}/bin/rocm-smi";
+      # Test requires the (shared) test variant
+      rsmitst-shared = "${rocmPackages.rocm-smi-variants.shared.test}/share/rocm_smi/rsmitst_tests/rsmitst";
+      # Test requires the (static) test variant
+      rsmitst-static = "${rocmPackages.rocm-smi-variants.static.test}/share/rocm_smi/rsmitst_tests/rsmitst";
     };
 
-    tests.rocm-smi = finalAttrs.passthru.unparsedTests.rocm-smi;
-
     impureTests = {
-      rocm-smi = rocmMakeImpureTest {
-        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
+      rocm-smi = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.rocm-smi-variants.shared.default;
         testName = "rocm-smi";
         isExecutable = true;
       };
 
-      rsmitst = rocmMakeImpureTest {
-        testedPackage = rocmPackages_5.rocm-smi-variants.shared;
-        testName = "rsmitst";
+      rsmitst-shared = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.rocm-smi-variants.shared.test;
+        testName = "rsmitst-shared";
+        isExecutable = true;
+        bypassTestScript = true;
+      };
+
+      rsmitst-static = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.rocm-smi-variants.static.test;
+        testName = "rsmitst-static";
         isExecutable = true;
         bypassTestScript = true;
       };
     };
-
-    updateScript = rocmUpdateScript {
-      name = finalAttrs.pname;
-      owner = finalAttrs.src.owner;
-      repo = finalAttrs.src.repo;
-    };
   };
 
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "System management interface for AMD GPUs supported by ROCm";
     homepage = "https://github.com/RadeonOpenCompute/rocm_smi_lib";
     license = with licenses; [ ncsa ];
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
-    platforms = platforms.linux;
-
-    broken =
-      # Don't allow major version upgrades: It will need to go into `rocmPackages_6`
-      versions.major finalAttrs.version != rocmPackages_5.util.rocmVersionMajor ||
-      # Don't allow a version difference bigger than a patch
-      versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+    maintainers = with maintainers; oldAttrs.meta.maintainers ++ [ lovesegfault ];
   };
 })

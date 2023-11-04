@@ -43,9 +43,9 @@ in rec {
 
   rocminfo = rocmClangCallPackage ./rocminfo { };
 
-  rocm-smi-variants = recurseIntoAttrs (callPackage ./rocm-smi { });
+  rocm-smi-variants = recursiveClangCallPackage ./rocm-smi;
 
-  rocm-smi = rocm-smi-variants.shared;
+  rocm-smi = rocm-smi-variants.shared.default;
 
   clang-ocl = callPackage ./clang-ocl { };
 
