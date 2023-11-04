@@ -143,9 +143,7 @@ in rocmMkDerivation {
       # };
 
       # Tests require the (shared) test variant
-      ocltst-shared = "${rocmPackages.clr-variants.shared.test}/share/opencl/ocltst/ocltst";
-      # Tests require the (static) test variant
-      ocltst-static = "${rocmPackages.clr-variants.static.test}/share/opencl/ocltst/ocltst";
+      ocltst = "${rocmPackages.clr-variants.shared.test}/share/opencl/ocltst/ocltst";
 
       # Tests requires the shared variant
       opencl-example = callPackage ./tests/opencl-example.nix {
@@ -163,16 +161,9 @@ in rocmMkDerivation {
       # `liboclgl.so` requires access to the X server
       # `liboclperf.so` is just a performance test
       # `liboclruntime.so` uses a LOT of memory
-      ocltst-shared = rocmPackages.util.rocmMakeImpureTest {
+      ocltst = rocmPackages.util.rocmMakeImpureTest {
         testedPackage = rocmPackages.clr-variants.shared.test;
-        testName = "ocltst-shared";
-        isExecutable = true;
-        executableSuffix = " -m liboclruntime.so";
-      };
-
-      ocltst-static = rocmPackages.util.rocmMakeImpureTest {
-        testedPackage = rocmPackages.clr-variants.static.test;
-        testName = "ocltst-static";
+        testName = "ocltst";
         isExecutable = true;
         executableSuffix = " -m liboclruntime.so";
       };
