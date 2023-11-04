@@ -1,10 +1,5 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmPackages_5
 , makeWrapper
 , perl
 , git
@@ -15,11 +10,19 @@
 , libX11
 , glew
 , callPackage
+, rocmPackages ? { }
+, rocmMkDerivation ? { }
+, ...
+}:
+
+{ hip-common ? { }
+, hipcc ? { }
 , buildShared ? true
+, buildTests ? false
 }:
 
 let
-  wrapperArgs = with rocmPackages_5; [
+  wrapperArgs = with rocmPackages; [
     "--prefix PATH : $out/bin:${lib.makeBinPath [ llvm.clang rocminfo rocm-smi ]}"
     "--prefix LD_LIBRARY_PATH : $out/lib:${lib.makeLibraryPath [ llvm.clang.cc rocm-comgr rocm-runtime rocm-smi ]}"
     "--set HIP_PLATFORM amd"
@@ -29,19 +32,19 @@ let
     "--set HSA_PATH ${rocm-runtime}"
     "--set ROCM_PATH $out"
   ];
-in stdenv.mkDerivation (finalAttrs: {
-  pname = finalAttrs.passthru.prefixName + (
-    if buildShared
-    then "-shared"
-    else "-static"
+in rocmMkDerivation {
+  inherit buildShared buildTests;
+} (finalAttrs: oldAttrs: {
+  pname =
+    oldAttrs.pname
+  + (
+    if buildTests
+    then "-test"
+    else "-default"
   );
 
   version = "5.7.1";
-
-  outputs = [
-    "out"
-    "icd"
-  ];
+  outputs = oldAttrs.outputs ++ [ "icd" ];
 
   src = fetchFromGitHub {
     owner = "ROCm-Developer-Tools";
@@ -51,23 +54,24 @@ in stdenv.mkDerivation (finalAttrs: {
     leaveDotGit = true;
   };
 
-  nativeBuildInputs = [
+  nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
     makeWrapper
     perl
     git
     python3Packages.python
     python3Packages.cppheaderparser
-  ] ++ commonNativeBuildInputs;
+  ];
 
   buildInputs = [
     numactl
     libGL
     libxml2
     libX11
+  ] ++ lib.optionals buildTests [
     glew
   ];
 
-  propagatedBuildInputs = with rocmPackages_5; [
+  propagatedBuildInputs = with rocmPackages; [
     llvm.clang
     rocm-device-libs
     rocm-comgr
@@ -76,7 +80,7 @@ in stdenv.mkDerivation (finalAttrs: {
     rocm-smi
   ];
 
-  cmakeFlags = with rocmPackages_5; [
+  cmakeFlags = with rocmPackages; oldAttrs.cmakeFlags ++ [
     # Prefer newer OpenGL libraries
     (lib.cmakeFeature "CMAKE_POLICY_DEFAULT_CMP0072" "NEW")
     # Can't seem to build hip itself as static at the moment
@@ -88,8 +92,8 @@ in stdenv.mkDerivation (finalAttrs: {
     (lib.cmakeFeature "ROCM_PATH" "${rocminfo}")
     (lib.cmakeFeature "PROF_API_HEADER_PATH" "${roctracer.src}/inc/ext")
     (lib.cmakeBool "BUILD_SHARED_LIBS" buildShared)
-    (lib.cmakeBool "BUILD_TESTS" true)
-  ] ++ commonCMakeFlags;
+    (lib.cmakeBool "BUILD_TESTS" buildTests)
+  ];
 
   postPatch = ''
     patchShebangs hipamd
@@ -100,66 +104,82 @@ in stdenv.mkDerivation (finalAttrs: {
       --replace "install(PROGRAMS \''${HIPCC_BIN_DIR}/hipconfig.bat DESTINATION bin)" ""
 
     substituteInPlace hipamd/src/hip_embed_pch.sh \
-      --replace "\''$LLVM_DIR/bin/clang" "${rocmPackages_5.llvm.clang}/bin/clang"
+      --replace "\''$LLVM_DIR/bin/clang" "${rocmPackages.llvm.clang}/bin/clang"
+
+    substituteInPlace opencl/khronos/icd/loader/icd_platform.h \
+      --replace "/etc/OpenCL/vendors/" "$out/etc/OpenCL/vendors/"
   '';
 
   postInstall = lib.optionalString buildShared ''
     patchShebangs $out/bin
 
     # hipcc.bin and hipconfig.bin is mysteriously never installed
-    cp -a ${rocmPackages_5.hipcc}/bin/{hipcc.bin,hipconfig.bin} $out/bin
+    cp -a ${hipcc}/bin/{hipcc.bin,hipconfig.bin} $out/bin
   '' + lib.optionalString buildShared (lib.concatStrings (lib.forEach [
     "hipcc.bin" "hipconfig.bin" "hipcc.pl" "hipconfig.pl"
   ] (target: ''
     wrapProgram $out/bin/${target} ${lib.concatStringsSep " " wrapperArgs}
   ''))) + lib.optionalString buildShared ''
     # Just link rocminfo, it's easier
-    ln -s ${rocmPackages_5.rocminfo}/bin/* $out/bin
+    ln -s ${rocmPackages.rocminfo}/bin/* $out/bin
 
     # These don't have the executable bit for some reason
     chmod +x $out/lib/{libamdhip64,libhiprtc-builtins,libhiprtc}.so.*-*
   '' + ''
     # Replace rocm-opencl-icd functionality
-    mkdir -p $icd/etc/OpenCL/vendors
-    echo "$out/lib/libamdocl64.so" > $icd/etc/OpenCL/vendors/amdocl64.icd
+    mkdir -p {$out,$icd}/etc/OpenCL/vendors
+    echo "$out/lib/libamdocl64.so" > $out/etc/OpenCL/vendors/amdocl64.icd
+    ln -s $out/etc/OpenCL/vendors/amdocl64.icd $icd/etc/OpenCL/vendors/amdocl64.icd
   '';
 
-  passthru = {
+  passthru = oldAttrs.passthru // {
     prefixName = "clr";
+    prefixNameSuffix = "-variants";
 
-    tests = {
+    unparsedTests = {
       # Tests requires the shared variant
-      hip-tests = callPackage ./tests/hip-tests.nix {
-        inherit stdenv commonNativeBuildInputs commonCMakeFlags rocmUpdateScript;
-        testedPackage = rocmPackages_5.clr-variants.shared;
-      };
+      # hip-tests = rocmPackages.util.rocmClangCallPackage ./tests/hip-tests.nix {
+      #   testedPackage = rocmPackages.clr-variants.shared.default;
+      # };
 
-      ocltst = callPackage ./tests/ocltst.nix { testedPackage = finalAttrs.finalPackage; };
+      # Tests require the (shared) test variant
+      ocltst-shared = "${rocmPackages.clr-variants.shared.test}/share/opencl/ocltst/ocltst";
+      # Tests require the (static) test variant
+      ocltst-static = "${rocmPackages.clr-variants.static.test}/share/opencl/ocltst/ocltst";
 
       # Tests requires the shared variant
       opencl-example = callPackage ./tests/opencl-example.nix {
-        testedPackage = rocmPackages_5.clr-variants.shared;
+        testedPackage = rocmPackages.clr-variants.shared.default;
       };
     };
 
     impureTests = {
-      hip-tests = callPackage ../impureTests.nix {
-        testedPackage = rocmPackages_5.clr-variants.shared;
-        testName = "hip-tests";
-        isNested = true;
-      };
+      # hip-tests = rocmPackages.util.rocmMakeImpureTest {
+      #   testedPackage = rocmPackages.clr-variants.shared.default;
+      #   testName = "hip-tests";
+      #   isNested = true;
+      # };
 
-      ocltst = callPackage ../impureTests.nix {
-        testedPackage = finalAttrs.finalPackage;
-        testName = "ocltst";
-        isNested = true;
+      # `liboclgl.so` requires access to the X server
+      # `liboclperf.so` is just a performance test
+      # `liboclruntime.so` uses a LOT of memory
+      ocltst-shared = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.clr-variants.shared.test;
+        testName = "ocltst-shared";
         isExecutable = true;
+        executableSuffix = " -m liboclperf.so";
       };
 
-      opencl-example = callPackage ../impureTests.nix {
-        testedPackage = rocmPackages_5.clr-variants.shared;
+      ocltst-static = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.clr-variants.static.test;
+        testName = "ocltst-static";
+        isExecutable = true;
+        executableSuffix = " -m liboclperf.so";
+      };
+
+      opencl-example = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.clr-variants.shared.default;
         testName = "opencl-example";
-        isNested = true;
       };
     };
 
@@ -173,7 +193,7 @@ in stdenv.mkDerivation (finalAttrs: {
       "1101" "1102"
     ] (target: "gfx${target}");
 
-    updateScript = rocmUpdateScript {
+    updateScript = rocmPackages.util.rocmUpdateScript {
       name = finalAttrs.pname;
       owner = finalAttrs.src.owner;
       repo = finalAttrs.src.repo;
@@ -182,12 +202,13 @@ in stdenv.mkDerivation (finalAttrs: {
     };
   };
 
-  meta = with lib; {
+  # For `ocltst`
+  hardeningDisable = lib.optionals buildTests [ "format" ];
+
+  meta = with lib; oldAttrs.meta // {
     description = "AMD Common Language Runtime for hipamd, opencl, and rocclr";
     homepage = "https://github.com/ROCm-Developer-Tools/clr";
     license = with licenses; [ mit ];
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+    maintainers = with maintainers; oldAttrs.meta.maintainers ++ [ lovesegfault ];
   };
 })

@@ -1,15 +1,13 @@
 { lib
-, stdenv
 , fetchFromGitHub
-, commonNativeBuildInputs
-, commonCMakeFlags
-, rocmUpdateScript
-, rocmPackages_5
 , lsb-release
+, rocmMkDerivation ? { }
+, ...
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "hipcc";
+{ }:
+
+rocmMkDerivation { } (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchFromGitHub {
@@ -18,9 +16,6 @@ stdenv.mkDerivation (finalAttrs: {
     rev = "rocm-${finalAttrs.version}";
     hash = "sha256-lJX6nF1V4YmK5ai7jivXlRnG3doIOf6X9CWLHVdRuVg=";
   };
-
-  nativeBuildInputs = commonNativeBuildInputs;
-  cmakeFlags = commonCMakeFlags;
 
   postPatch = ''
     substituteInPlace src/hipBin_amd.h \
@@ -32,18 +27,12 @@ stdenv.mkDerivation (finalAttrs: {
     ln -s $out/bin $out/hip/bin
   '';
 
-  passthru.updateScript = rocmUpdateScript {
-    name = finalAttrs.pname;
-    owner = finalAttrs.src.owner;
-    repo = finalAttrs.src.repo;
-  };
+  passthru.prefixName = "hipcc";
 
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "Compiler driver utility that calls clang or nvcc";
     homepage = "https://github.com/ROCm-Developer-Tools/HIPCC";
     license = with licenses; [ mit ];
-    maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
+    maintainers = with maintainers; oldAttrs.meta.maintainers ++ [ lovesegfault ];
   };
 })

@@ -66,7 +66,5 @@ stdenv.mkDerivation {
     license = licenses.bsd2;
     platforms = platforms.linux;
     maintainers = teams.rocm.members;
-    # Needs to be ran in `impureTests`
-    broken = true;
   };
 }

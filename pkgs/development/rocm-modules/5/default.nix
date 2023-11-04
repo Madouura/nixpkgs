@@ -57,15 +57,10 @@ in rec {
   rdc = rdc-variants.default;
 
   ## ROCm-Developer-Tools ##
-  hip-common = callPackage ./hip-common { };
-
-  # Eventually will be in the LLVM repo
-  hipcc = callPackage ./hipcc { };
-
   # Replaces hip, opencl-runtime, and rocclr
-  clr-variants = callPackage ./clr { };
+  clr-variants = recursiveClangCallPackage ./clr;
 
-  clr = clr-variants.shared;
+  clr = clr-variants.shared.default;
 
   hipify = callPackage ./hipify { };
 
