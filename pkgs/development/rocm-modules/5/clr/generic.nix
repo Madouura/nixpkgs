@@ -167,14 +167,14 @@ in rocmMkDerivation {
         testedPackage = rocmPackages.clr-variants.shared.test;
         testName = "ocltst-shared";
         isExecutable = true;
-        executableSuffix = " -m liboclperf.so";
+        executableSuffix = " -m liboclruntime.so";
       };
 
       ocltst-static = rocmPackages.util.rocmMakeImpureTest {
         testedPackage = rocmPackages.clr-variants.static.test;
         testName = "ocltst-static";
         isExecutable = true;
-        executableSuffix = " -m liboclperf.so";
+        executableSuffix = " -m liboclruntime.so";
       };
 
       opencl-example = rocmPackages.util.rocmMakeImpureTest {
