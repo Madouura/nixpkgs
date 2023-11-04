@@ -22,8 +22,7 @@ let
     "rocmPackages_${lib.versions.major version}."
   + testedPackage.prefixName
   + lib.optionalString (lib.hasAttr "prefixNameSuffix" testedPackage)
-      testedPackage.prefixNameSuffix
-  + "."
+      "${testedPackage.prefixNameSuffix}."
   + lib.replaceStrings [ "-" "." ] [ "" "" ]
       (lib.removePrefix testedPackage.prefixName (lib.getName testedPackage));
 

@@ -41,7 +41,7 @@ in rec {
 
   rocm-runtime = rocm-runtime-variants.shared.image;
 
-  rocminfo = callPackage ./rocminfo { };
+  rocminfo = rocmClangCallPackage ./rocminfo { };
 
   rocm-smi-variants = recurseIntoAttrs (callPackage ./rocm-smi { });
 
