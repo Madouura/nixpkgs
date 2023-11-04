@@ -3,12 +3,13 @@
 , rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
+  targetName = "pstl";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false; # No documentation to build
   buildMan = false; # No man pages to build
   buildTests = false; # Too many errors
-  targetName = "pstl";
   targetDir = "runtimes";
   targetRuntimes = [ targetName ];
   checkTargets = [ "check-${targetName}" ];

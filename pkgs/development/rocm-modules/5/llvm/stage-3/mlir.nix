@@ -1,4 +1,5 @@
-{ callPackage
+{ lib
+, callPackage
 , vulkan-headers
 , vulkan-loader
 , glslang
@@ -8,18 +9,19 @@
 , rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
+  targetName = "mlir";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   buildDocs = false; # No decent way to hack this to work
   buildMan = false; # No man pages to build
-  targetName = "mlir";
   targetDir = targetName;
 
   # Fix `DebugTranslation.cpp:139:10: error: no matching function for call to 'get'`
   # We patch at a different source root, so we modify the patch and include it locally
   # https://github.com/RadeonOpenCompute/llvm-project/commit/f1d1e10ec7e1061bf0b90abbc1e298d9438a5e74.patch
   extraPatches = [ ./0000-mlir-fix-debugtranslation.patch ];
-  extraNativeBuildInputs = [ clr ];
+  extraNativeBuildInputs = [ rocmPackages.clr ];
 
   extraBuildInputs = [
     vulkan-headers
@@ -29,12 +31,12 @@ callPackage ../generic.nix rec {
   ];
 
   extraCMakeFlags = [
-    "-DMLIR_INCLUDE_DOCS=ON"
-    "-DMLIR_INCLUDE_TESTS=ON"
-    "-DMLIR_ENABLE_ROCM_RUNNER=ON"
-    "-DMLIR_ENABLE_SPIRV_CPU_RUNNER=ON"
-    "-DMLIR_ENABLE_VULKAN_RUNNER=ON"
-    "-DROCM_TEST_CHIPSET=gfx000" # CPU runner
+    (lib.cmakeBool "MLIR_INCLUDE_DOCS" true)
+    (lib.cmakeBool "MLIR_INCLUDE_TESTS" true)
+    (lib.cmakeBool "MLIR_ENABLE_ROCM_RUNNER" true)
+    (lib.cmakeBool "MLIR_ENABLE_SPIRV_CPU_RUNNER" true)
+    (lib.cmakeBool "MLIR_ENABLE_VULKAN_RUNNER" true)
+    (lib.cmakeFeature "ROCM_TEST_CHIPSET" "gfx000")
   ];
 
   extraPostPatch = ''

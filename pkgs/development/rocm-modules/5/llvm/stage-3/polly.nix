@@ -3,9 +3,10 @@
 , rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
   targetName = "polly";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   targetDir = targetName;
 
   extraPostPatch = ''

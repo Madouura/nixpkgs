@@ -9,13 +9,14 @@
 , rocmPackages ? { }
 }:
 
-callPackage ../generic.nix rec {
-  inherit stdenv rocmUpdateScript;
+let
   targetName = "openmp";
+in callPackage ../generic.nix {
+  inherit stdenv rocmPackages targetName;
   targetDir = targetName;
   extraNativeBuildInputs = [ perl ];
 
-  extraBuildInputs = [
+  extraBuildInputs = with rocmPackages; [
     rocm-device-libs
     rocm-runtime
     rocm-thunk
@@ -24,14 +25,15 @@ callPackage ../generic.nix rec {
     numactl
   ];
 
-  extraCMakeFlags = [
-    "-DCMAKE_MODULE_PATH=/build/source/llvm/cmake/modules" # For docs
-    "-DCLANG_TOOL=${clang}/bin/clang"
-    "-DCLANG_OFFLOAD_BUNDLER_TOOL=${clang-unwrapped}/bin/clang-offload-bundler"
-    "-DPACKAGER_TOOL=${clang-unwrapped}/bin/clang-offload-packager"
-    "-DOPENMP_LLVM_TOOLS_DIR=${llvm}/bin"
-    "-DOPENMP_LLVM_LIT_EXECUTABLE=${lit}/bin/.lit-wrapped"
-    "-DDEVICELIBS_ROOT=${rocm-device-libs.src}"
+  extraCMakeFlags = with rocmPackages; [
+    # For docs
+    (lib.cmakeFeature "CMAKE_MODULE_PATH" "/build/source/llvm/cmake/modules")
+    (lib.cmakeFeature "CLANG_TOOL" "${llvm.clang}/bin/clang")
+    (lib.cmakeFeature "CLANG_OFFLOAD_BUNDLER_TOOL" "${llvm.clang}/bin/clang-offload-bundler")
+    (lib.cmakeFeature "PACKAGER_TOOL" "${llvm.clang}/bin/clang-offload-packager")
+    (lib.cmakeFeature "OPENMP_LLVM_TOOLS_DIR" "${llvm.llvm}/bin")
+    (lib.cmakeFeature "OPENMP_LLVM_LIT_EXECUTABLE" "${lit}/bin/.lit-wrapped")
+    (lib.cmakeFeature "DEVICELIBS_ROOT" "${rocm-device-libs.src}")
   ];
 
   extraPostPatch = ''
