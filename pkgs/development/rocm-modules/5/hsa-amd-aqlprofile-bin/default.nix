@@ -1,13 +1,14 @@
 { lib
-, stdenv
 , fetchurl
 , callPackage
 , dpkg
-, rocmPackages_5
+, rocmMkDerivation ? { }
+, ...
 }:
 
-stdenv.mkDerivation (finalAttrs: {
-  pname = "hsa-amd-aqlprofile-bin";
+{ }:
+
+rocmMkDerivation { } (finalAttrs: oldAttrs: {
   version = "5.7.1";
 
   src = fetchurl {
@@ -23,22 +24,21 @@ stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out
-    cp -a opt/rocm-${finalAttrs.version}/* $out
+    cp -a opt/rocm-${finalAttrs.version} $out
     chmod +x $out/lib/libhsa-amd-aqlprofile64.so.1.*
     chmod +x $out/lib/hsa-amd-aqlprofile/librocprofv2_att.so
 
     runHook postInstall
   '';
 
-  passthru.updateScript = (callPackage ./update.nix { }) { inherit (finalAttrs) version; };
+  passthru = {
+    prefixName = "hsa-amd-aqlprofile-bin";
+    updateScript = (callPackage ./update.nix { }) { inherit (finalAttrs) version; };
+  };
 
-  meta = with lib; {
+  meta = with lib; oldAttrs.meta // {
     description = "AQLPROFILE library for AMD HSA runtime API extension support";
-    homepage = "https://rocm.docs.amd.com/en/latest/";
+    homepage = "https://rocm.docs.amd.com/en/latest";
     license = with licenses; [ unfree ];
-    maintainers = teams.rocm.members;
-    platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.llvm.llvm.version;
   };
 })

@@ -47,12 +47,14 @@ in rec {
 
   rocm-smi = rocm-smi-variants.shared.default;
 
-  clang-ocl = callPackage ./clang-ocl { };
+  clang-ocl = rocmClangCallPackage ./clang-ocl { };
 
   # Unfree
-  hsa-amd-aqlprofile-bin = callPackage ./hsa-amd-aqlprofile-bin { };
+  hsa-amd-aqlprofile-bin = rocmClangCallPackage ./hsa-amd-aqlprofile-bin { };
 
-  rdc = callPackage ./rdc { };
+  rdc-variants = recursiveClangCallPackage ./rdc;
+
+  rdc = rdc-variants.default;
 
   ## ROCm-Developer-Tools ##
   hip-common = callPackage ./hip-common { };

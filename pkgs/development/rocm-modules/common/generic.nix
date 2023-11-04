@@ -72,9 +72,7 @@ stdenv.mkDerivation (finalAttrs: {
       minor finalAttrs.version != minor rocmPackages.util.version ||
       # Don't allow passthru to not have the `prefixName` attribute
       !(hasAttr "prefixName" finalAttrs.passthru) ||
-      # Don't allow the derivation to not have the `src` attribute and it's constituents
-      !(hasAttr "src" finalAttrs) ||
-      !(hasAttr "owner" finalAttrs.src) ||
-      !(hasAttr "repo" finalAttrs.src);
+      # Don't allow the derivation to not have the `src` attribute
+      !(hasAttr "src" finalAttrs);
   };
 })
