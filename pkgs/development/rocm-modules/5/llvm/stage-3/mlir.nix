@@ -50,7 +50,7 @@ in callPackage ../generic.nix {
 
   extraPostInstall = ''
     mkdir -p $out/bin
-    mv bin/mlir-tblgen $out/bin
+    cp -a bin/mlir-tblgen $out/bin
   '';
 
   checkTargets = [ "check-${targetName}" ];

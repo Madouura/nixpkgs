@@ -1,4 +1,5 @@
-{ callPackage
+{ lib
+, callPackage
 , stdenv ? { }
 , rocmPackages ? { }
 }:
@@ -10,8 +11,8 @@ callPackage ../generic.nix {
   extraBuildInputs = with rocmPackages.llvm; [ llvm ];
 
   extraCMakeFlags = [
-    "-DCLANG_INCLUDE_DOCS=ON"
-    "-DCLANG_INCLUDE_TESTS=ON"
+    (lib.cmakeBool "CLANG_INCLUDE_DOCS" true)
+    (lib.cmakeBool "CLANG_INCLUDE_TESTS" true)
   ];
 
   extraPostPatch = ''
@@ -39,7 +40,7 @@ callPackage ../generic.nix {
   '';
 
   extraPostInstall = ''
-    mv bin/clang-tblgen $out/bin
+    cp -a bin/clang-tblgen $out/bin
   '';
 
   requiredSystemFeatures = [ "big-parallel" ];

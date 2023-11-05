@@ -23,8 +23,8 @@ in callPackage ../generic.nix {
   extraBuildInputs = with rocmPackages.llvm; [ llvm ];
 
   extraCMakeFlags = [
-    "-DLIBCXX_INCLUDE_BENCHMARKS=OFF"
-    "-DLIBCXX_CXX_ABI=libcxxabi"
+    (lib.cmakeBool "LIBCXX_INCLUDE_BENCHMARKS" false)
+    (lib.cmakeFeature "LIBCXX_CXX_ABI" "libcxxabi")
   ];
 
   extraLicenses = [ lib.licenses.mit ];

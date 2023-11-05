@@ -1,4 +1,5 @@
-{ callPackage
+{ lib
+, callPackage
 , stdenv ? { }
 , rocmPackages ? { }
 }:
@@ -18,21 +19,21 @@ in callPackage ../generic.nix {
   ];
 
   extraCMakeFlags = [
-    "-DLIBCXXABI_INCLUDE_TESTS=ON"
-    "-DLIBCXXABI_USE_LLVM_UNWINDER=ON"
-    "-DLIBCXXABI_USE_COMPILER_RT=ON"
+    (lib.cmakeBool "LIBCXXABI_INCLUDE_TESTS" true)
+    (lib.cmakeBool "LIBCXXABI_USE_LLVM_UNWINDER" true)
+    (lib.cmakeBool "LIBCXXABI_USE_COMPILER_RT" true)
 
     # Workaround having to build combined
-    "-DLIBUNWIND_INCLUDE_DOCS=OFF"
-    "-DLIBUNWIND_INCLUDE_TESTS=OFF"
-    "-DLIBUNWIND_USE_COMPILER_RT=ON"
-    "-DLIBUNWIND_INSTALL_LIBRARY=OFF"
-    "-DLIBUNWIND_INSTALL_HEADERS=OFF"
-    "-DLIBCXX_INCLUDE_DOCS=OFF"
-    "-DLIBCXX_INCLUDE_TESTS=OFF"
-    "-DLIBCXX_USE_COMPILER_RT=ON"
-    "-DLIBCXX_CXX_ABI=libcxxabi"
-    "-DLIBCXX_INSTALL_LIBRARY=OFF"
-    "-DLIBCXX_INSTALL_HEADERS=OFF"
+    (lib.cmakeBool "LIBUNWIND_INCLUDE_DOCS" false)
+    (lib.cmakeBool "LIBUNWIND_INCLUDE_TESTS" false)
+    (lib.cmakeBool "LIBUNWIND_USE_COMPILER_RT" true)
+    (lib.cmakeBool "LIBUNWIND_INSTALL_LIBRARY" false)
+    (lib.cmakeBool "LIBUNWIND_INSTALL_HEADERS" false)
+    (lib.cmakeBool "LIBCXX_INCLUDE_DOCS" false)
+    (lib.cmakeBool "LIBCXX_INCLUDE_TESTS" false)
+    (lib.cmakeBool "LIBCXX_USE_COMPILER_RT" true)
+    (lib.cmakeFeature "LIBCXX_CXX_ABI" "libcxxabi")
+    (lib.cmakeBool "LIBCXX_INSTALL_LIBRARY" false)
+    (lib.cmakeBool "LIBCXX_INSTALL_HEADERS" false)
   ];
 }

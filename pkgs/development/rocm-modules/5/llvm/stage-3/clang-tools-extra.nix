@@ -1,4 +1,5 @@
-{ callPackage
+{ lib
+, callPackage
 , gtest
 , stdenv ? { }
 , rocmPackages ? { }
@@ -17,11 +18,11 @@ callPackage ../generic.nix {
   extraBuildInputs = [ gtest ];
 
   extraCMakeFlags = [
-    "-DLLVM_INCLUDE_DOCS=OFF"
-    "-DLLVM_INCLUDE_TESTS=OFF"
-    "-DCLANG_INCLUDE_DOCS=OFF"
-    "-DCLANG_INCLUDE_TESTS=ON"
-    "-DCLANG_TOOLS_EXTRA_INCLUDE_DOCS=ON"
+    (lib.cmakeBool "LLVM_INCLUDE_DOCS" false)
+    (lib.cmakeBool "LLVM_INCLUDE_TESTS" false)
+    (lib.cmakeBool "CLANG_INCLUDE_DOCS" false)
+    (lib.cmakeBool "CLANG_INCLUDE_TESTS" true)
+    (lib.cmakeBool "CLANG_TOOLS_EXTRA_INCLUDE_DOCS" true)
   ];
 
   extraPostInstall = with rocmPackages.llvm; ''

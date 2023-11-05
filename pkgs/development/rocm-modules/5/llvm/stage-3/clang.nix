@@ -37,7 +37,10 @@ let
         clang_version=$(${clang-unwrapped}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+")
         clang_dir="$out/lib/clang/$clang_version"
         ln -sf $out/include/* $clang_dir/include
-        ln -s $out/lib $clang_dir
+        mkdir -p $clang_dir/lib
+        ln -s $out/lib/* $clang_dir/lib
+        # Prevent cyclical reference which messes up `nix-collect-garbage`
+        rm $clang_dir/lib/clang
       '' + lib.optionalString useLibUnwind ''
         ln -sf ${clang-unwrapped}/lib/clang/$clang_version/include/unwind.h $clang_dir/include/unwind.h
       '';
@@ -114,7 +117,7 @@ in wrapCCWith {
     clang_version=$(${cc}/bin/clang -v 2>&1 | grep "clang version " | grep -E -o "[0-9.-]+")
     ln -s ${cc}/lib/clang/$clang_version $out/resource-root
 
-    # Add various binaries that the user may want
+    # Add various binaries that the user or package may want
     ln -s ${cc}/bin/* $out/bin 2>/dev/null || true
   '';
 }

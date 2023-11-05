@@ -51,7 +51,7 @@ let
     else if stdenv.isAarch64 then "AArch64"
     else throw "Unsupported ROCm LLVM platform";
   inferNativeTarget = t: if t == "NATIVE" then llvmNativeTarget else t;
-  llvmTargetsToBuild' = [ "AMDGPU" ] ++ builtins.map inferNativeTarget llvmTargetsToBuild;
+  llvmTargetsToBuild' = [ "AMDGPU" ] ++ lib.map inferNativeTarget llvmTargetsToBuild;
 in stdenv.mkDerivation (finalAttrs: {
   pname = "rocm-llvm-${targetName}";
   version = "5.7.1";
@@ -104,26 +104,27 @@ in stdenv.mkDerivation (finalAttrs: {
   sourceRoot = "${finalAttrs.src.name}/${targetDir}";
 
   cmakeFlags = [
-    "-DLLVM_TARGETS_TO_BUILD=${builtins.concatStringsSep ";" llvmTargetsToBuild'}"
+    (lib.cmakeFeature "LLVM_TARGETS_TO_BUILD" (lib.concatStringsSep ";" llvmTargetsToBuild'))
   ] ++ lib.optionals (targetDir == "llvm" && targetProjects != [ ]) [
-    "-DLLVM_ENABLE_PROJECTS=${lib.concatStringsSep ";" targetProjects}"
+    (lib.cmakeFeature "LLVM_ENABLE_PROJECTS" (lib.concatStringsSep ";" targetProjects))
   ] ++ lib.optionals ((targetDir == "llvm" || targetDir == "runtimes") && targetRuntimes != [ ]) [
-    "-DLLVM_ENABLE_RUNTIMES=${lib.concatStringsSep ";" targetRuntimes}"
+    (lib.cmakeFeature "LLVM_ENABLE_RUNTIMES" (lib.concatStringsSep ";" targetRuntimes))
   ] ++ lib.optionals (targetDir == "llvm") [
-    "-DLLVM_INSTALL_UTILS=ON"
-    "-DLLVM_INSTALL_GTEST=ON"
+    (lib.cmakeBool "LLVM_INSTALL_UTILS" true)
+    (lib.cmakeBool "LLVM_INSTALL_GTEST" true)
   ] ++ lib.optionals (buildDocs || buildMan) [
-    "-DLLVM_INCLUDE_DOCS=ON"
-    "-DLLVM_BUILD_DOCS=ON"
-    # "-DLLVM_ENABLE_DOXYGEN=ON" Way too slow, only uses one core
-    "-DLLVM_ENABLE_SPHINX=ON"
-    "-DSPHINX_OUTPUT_HTML=ON"
-    "-DSPHINX_OUTPUT_MAN=ON"
-    "-DSPHINX_WARNINGS_AS_ERRORS=OFF"
+    (lib.cmakeBool "LLVM_INCLUDE_DOCS" true)
+    (lib.cmakeBool "LLVM_BUILD_DOCS" true)
+    # Way too slow, only uses one core
+    # (lib.cmakeBool "LLVM_ENABLE_DOXYGEN" true)
+    (lib.cmakeBool "LLVM_ENABLE_SPHINX" true)
+    (lib.cmakeBool "SPHINX_OUTPUT_HTML" true)
+    (lib.cmakeBool "SPHINX_OUTPUT_MAN" true)
+    (lib.cmakeBool "SPHINX_WARNINGS_AS_ERRORS" false)
   ] ++ lib.optionals buildTests [
-    "-DLLVM_INCLUDE_TESTS=ON"
-    "-DLLVM_BUILD_TESTS=ON"
-    "-DLLVM_EXTERNAL_LIT=${lit}/bin/.lit-wrapped"
+    (lib.cmakeBool "LLVM_INCLUDE_TESTS" true)
+    (lib.cmakeBool "LLVM_BUILD_TESTS" true)
+    (lib.cmakeFeature "LLVM_EXTERNAL_LIT" "${lit}/bin/.lit-wrapped")
   ] ++ extraCMakeFlags;
 
   postPatch = lib.optionalString (targetDir == "llvm") ''
@@ -146,7 +147,7 @@ in stdenv.mkDerivation (finalAttrs: {
 
   passthru = {
     isLLVM = targetDir == "llvm" || isLibCXX;
-    isClang = targetDir == "clang" || builtins.elem "clang" targetProjects;
+    isClang = targetDir == "clang" || lib.elem "clang" targetProjects;
     cxxabi = lib.optionalAttrs isLibCXX rocmPackages.llvm.libcxxabi;
     libName = lib.optionalString isLibCXX "c++abi";
 
@@ -165,10 +166,6 @@ in stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ ncsa ] ++ extraLicenses;
     maintainers = with maintainers; [ acowley lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-
-    broken =
-      stdenv == { } ||
-      rocmPackages == { } ||
-      isBroken;
+    broken = isBroken;
   };
 })

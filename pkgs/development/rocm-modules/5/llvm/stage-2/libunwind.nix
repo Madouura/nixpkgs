@@ -1,4 +1,5 @@
-{ callPackage
+{ lib
+, callPackage
 , stdenv ? { }
 , rocmPackages ? { }
 }:
@@ -12,9 +13,9 @@ in callPackage ../generic.nix {
   targetRuntimes = [ targetName ];
 
   extraCMakeFlags = [
-    "-DLIBUNWIND_INCLUDE_DOCS=ON"
-    "-DLIBUNWIND_INCLUDE_TESTS=ON"
-    "-DLIBUNWIND_USE_COMPILER_RT=ON"
+    (lib.cmakeBool "LIBUNWIND_INCLUDE_DOCS" true)
+    (lib.cmakeBool "LIBUNWIND_INCLUDE_TESTS" true)
+    (lib.cmakeBool "LIBUNWIND_USE_COMPILER_RT" true)
   ];
 
   extraPostPatch = ''
