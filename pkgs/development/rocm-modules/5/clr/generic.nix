@@ -137,26 +137,25 @@ in rocmMkDerivation {
     prefixNameSuffix = "-variants";
 
     unparsedTests = {
-      # Tests requires the shared variant
-      # hip-tests = rocmPackages.util.rocmClangCallPackage ./tests/hip-tests.nix {
-      #   testedPackage = rocmPackages.clr-variants.shared.default;
-      # };
+      # Tests require the shared variant
+      hip-tests = rocmPackages.util.rocmClangCallPackage ./tests/hip-tests.nix {
+        testedPackage = rocmPackages.clr-variants.shared.default;
+      };
 
       # Tests require the (shared) test variant
       ocltst = "${rocmPackages.clr-variants.shared.test}/share/opencl/ocltst/ocltst";
 
-      # Tests requires the shared variant
+      # Tests require the shared variant
       opencl-example = callPackage ./tests/opencl-example.nix {
         testedPackage = rocmPackages.clr-variants.shared.default;
       };
     };
 
     impureTests = {
-      # hip-tests = rocmPackages.util.rocmMakeImpureTest {
-      #   testedPackage = rocmPackages.clr-variants.shared.default;
-      #   testName = "hip-tests";
-      #   isNested = true;
-      # };
+      hip-tests = rocmPackages.util.rocmMakeImpureTest {
+        testedPackage = rocmPackages.clr-variants.shared.default;
+        testName = "hip-tests";
+      };
 
       # `liboclgl.so` requires access to the X server
       # `liboclperf.so` is just a performance test

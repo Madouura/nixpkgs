@@ -2,17 +2,26 @@
 , callPackage
 , wrapBintoolsWith
 , overrideCC
-, rocmPackages ? { }
+, rocmPackages
 }:
 
 let
   ## Stage 1 ##
   # Helpers
-  rCallPackage = path: stdenvOverride: attrs:
-    callPackage path ({ inherit rocmPackages; stdenv = stdenvOverride; } // attrs);
+  rCallPackage = path: stdenvOverride: argsA:
+    (callPackage path {
+      stdenv = stdenvOverride;
+      inherit rocmPackages;
+
+      rPackage = argsB: attrs:
+        ((callPackage ./generic.nix {
+          stdenv = stdenvOverride;
+          inherit rocmPackages;
+        }).override argsB).overrideAttrs attrs;
+    }).override argsA;
 
   # Runtimes
-  runtimes = rCallPackage ./stage-1/runtimes.nix stdenv { };
+  runtimes = rCallPackage ./stage-1/runtimes stdenv { };
 
   ## Stage 2 ##
   # Helpers
@@ -46,9 +55,9 @@ in {
 
   ## Stage 1 ##
   # Projects
-  llvm = rCallPackage ./stage-1/llvm.nix stdenv { };
-  clang-unwrapped = rCallPackage ./stage-1/clang-unwrapped.nix stdenv { };
-  lld = rCallPackage ./stage-1/lld.nix stdenv { };
+  llvm = rCallPackage ./stage-1/llvm stdenv { };
+  clang-unwrapped = rCallPackage ./stage-1/clang-unwrapped stdenv { };
+  lld = rCallPackage ./stage-1/lld stdenv { };
 
   ## Stage 2 ##
   # Helpers

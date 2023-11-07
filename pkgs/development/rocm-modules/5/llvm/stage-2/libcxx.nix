@@ -8,7 +8,6 @@ let
   targetName = "libcxx";
 in callPackage ../generic.nix {
   inherit stdenv rocmPackages targetName;
-  isLibCXX = true;
   buildMan = false; # No man pages to build
   targetDir = "runtimes";
 

@@ -1,13 +1,13 @@
 { lib
-, callPackage
-, stdenv ? { }
-, rocmPackages ? { }
+, rocmPackages
+, rPackage
+, ...
 }:
 
 let
   targetName = "runtimes";
-in callPackage ../generic.nix {
-  inherit stdenv rocmPackages targetName;
+in rPackage {
+  inherit targetName;
   buildDocs = false;
   buildMan = false;
   buildTests = false;
@@ -20,7 +20,7 @@ in callPackage ../generic.nix {
     "compiler-rt"
   ];
 
-  extraBuildInputs = with rocmPackages.llvm; [ llvm ];
+  extraBuildInputs = [ rocmPackages.llvm.llvm ];
 
   extraCMakeFlags = [
     (lib.cmakeBool "LIBCXX_INCLUDE_BENCHMARKS" false)

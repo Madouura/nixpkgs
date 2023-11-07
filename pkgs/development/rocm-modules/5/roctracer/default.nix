@@ -3,7 +3,7 @@
 , fetchFromGitHub
 , rocmUpdateScript
 , cmake
-, clr
+, rocmPackages_5
 , rocm-device-libs
 , libxml2
 , doxygen
@@ -37,7 +37,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     cmake
-    clr
+    rocmPackages_5.clr
   ] ++ lib.optionals buildDocs [
     doxygen
     graphviz
@@ -51,7 +51,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-    "-DCMAKE_MODULE_PATH=${clr}/hip/cmake"
+    "-DCMAKE_MODULE_PATH=${rocmPackages_5.clr}/hip/cmake"
     # Manually define CMAKE_INSTALL_<DIR>
     # See: https://github.com/NixOS/nixpkgs/pull/197838
     "-DCMAKE_INSTALL_BINDIR=bin"
@@ -82,7 +82,7 @@ stdenv.mkDerivation (finalAttrs: {
     find $out/test -executable -type f -exec mv {} $test/bin \;
     rm $test/bin/{*.sh,*.py}
     patchelf --set-rpath $out/lib:${lib.makeLibraryPath (
-      finalAttrs.buildInputs ++ [ clr gcc-unwrapped.lib rocm-runtime ])} $test/bin/*
+      finalAttrs.buildInputs ++ [ rocmPackages_5.clr gcc-unwrapped.lib rocm-runtime ])} $test/bin/*
     rm -rf $out/test
   '';
 
@@ -98,6 +98,6 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ mit ]; # mitx11
     maintainers = teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor clr.version;
+    broken = versions.minor finalAttrs.version != versions.minor rocmPackages_5.clr.version;
   };
 })

@@ -1,0 +1,13 @@
+test/Analysis/scan-build/cxx-name.test
+test/Analysis/scan-build/deduplication.test
+test/Analysis/scan-build/exclude_directories.test
+test/Analysis/scan-build/help.test
+test/Analysis/scan-build/html_output.test
+test/Analysis/scan-build/plist_html_output.test
+test/Analysis/scan-build/plist_output.test
+test/Analysis/scan-build/rebuild_index/rebuild_index.test
+test/Analysis/scan-build/silence-core-checkers.test
+test/Driver/hip-options.hip
+test/Interpreter/dynamic-library.cpp
+test/Modules/header-attribs.cpp
+test/OpenMP/amdgcn_emit_llvm.c
